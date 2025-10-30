@@ -42,7 +42,7 @@ sudo bash macos-collector.sh --fsevents
 ![Aftermath-Analysis](https://github.com/user-attachments/assets/cfa5c6d1-c188-4648-ac7f-111ade15c943)  
 **Fig 3:** Analyzing Aftermath Archive  
 
-![FSEvents](https://github.com/user-attachments/assets/9f298c1b-d65b-45e6-b086-1fe14a82cb7d)  
+![FSEvents](https://github.com/user-attachments/assets/d52a6f96-2780-4747-a704-1f160acf1c37)  
 **Fig 4:** Collecting FSEvents Data  
 
 ## Dependencies
