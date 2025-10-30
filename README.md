@@ -40,7 +40,7 @@ sudo bash macos-collector.sh --fsevents
 **Fig 2:** Aftermath Collection w/ Deep Scan  
 
 ![Aftermath-Analysis](https://github.com/user-attachments/assets/cfa5c6d1-c188-4648-ac7f-111ade15c943)  
-**Fig 3:** Analyzing Aftermath Archive  
+**Fig 3:** Analyzing Aftermath Archive &#8594; switch to a clean macOS endpoint  
 
 ![FSEvents](https://github.com/user-attachments/assets/d52a6f96-2780-4747-a704-1f160acf1c37)  
 **Fig 4:** Collecting FSEvents Data  
