@@ -9,7 +9,10 @@ macos-collector.sh is a Shell script utilized to collect macOS Forensic Artifact
 Download the latest version of **macos-collector** from the [Releases](https://github.com/LETHAL-FORENSICS/macos-collector/releases/latest) section.  
 
 > [!NOTE]
-> macos-collector includes all external tools by default. 
+> macos-collector includes all external tools by default.  
+
+> [!IMPORTANT]
+> Aftermath needs to be root, as well as have full disk access (FDA) in order to run. FDA can be granted to the Terminal application in which it is running.
 
 ## Usage  
 ```Shell
