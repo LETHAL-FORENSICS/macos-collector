@@ -12,7 +12,10 @@ Download the latest version of **macos-collector** from the [Releases](https://g
 > macos-collector includes all external tools by default.  
 
 > [!IMPORTANT]
-> Aftermath needs to be root, as well as have full disk access (FDA) in order to run. FDA can be granted to the Terminal application in which it is running.
+> Aftermath needs to be root, as well as have full disk access (FDA) in order to run.  
+> FDA can be granted to the Terminal application in which it is running. 
+> 
+> To give your Terminal application temporarily full disk access, go to `System Settings` &#8594; `Privacy & Security` &#8594; `Full Disk Access`, click the `+` button, unlock the settings with Touch ID or enter your password, and choose your Terminal application. You will then need to quit and reopen your Terminal application for the changes to take effect. To revoke the access, simply return to the same menu and uncheck your Terminal application.  
 
 ## Usage  
 ```Shell
