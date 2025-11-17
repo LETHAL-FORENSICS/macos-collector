@@ -38,7 +38,7 @@ sudo bash macos-collector.sh --fsevents
 
 </br>
 
-![Help-Message](https://github.com/user-attachments/assets/b307b992-4cc3-4290-b7cd-47ec6924637c)  
+![Help-Message](https://github.com/user-attachments/assets/2f5d9677-4fdd-491a-93ce-4a0ed9718add)  
 **Fig 1:** Help Message  
 
 ![Aftermath-Collection](https://github.com/user-attachments/assets/27d73f2d-c139-446d-b1b6-20f0d4a52fb8)  
@@ -47,8 +47,14 @@ sudo bash macos-collector.sh --fsevents
 ![Aftermath-Analysis](https://github.com/user-attachments/assets/cfa5c6d1-c188-4648-ac7f-111ade15c943)  
 **Fig 3:** Analyzing Aftermath Archive &#8594; switch to a clean macOS endpoint  
 
-![FSEvents](https://github.com/user-attachments/assets/d52a6f96-2780-4747-a704-1f160acf1c37)  
+![FSEvents](https://github.com/user-attachments/assets/c3d9a361-8d85-47d4-9da9-08671e038f67)  
 **Fig 4:** Collecting FSEvents Data  
+
+![DS_Store](https://github.com/user-attachments/assets/0af153b0-df11-4ec4-a6de-3fd6fec8cb41)  
+**Fig 5:** Collecting DS_Store Files  
+
+![UnifiedLogs](https://github.com/user-attachments/assets/f80a175c-ee1b-4b95-95d3-c3005a009510)  
+**Fig 6:** Collecting Unified Logs
 
 ## Dependencies
 Aftermath v2.3.0 (2025-09-24)  
