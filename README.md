@@ -54,7 +54,7 @@ sudo bash macos-collector.sh --fsevents
 **Fig 5:** Collecting DS_Store Files  
 
 ![UnifiedLogs](https://github.com/user-attachments/assets/f80a175c-ee1b-4b95-95d3-c3005a009510)  
-**Fig 6:** Collecting Unified Logs (AUL)
+**Fig 6:** Collecting Apple Unified Logs (AUL)
 
 ## Dependencies
 Aftermath v2.3.0 (2025-09-24)  
