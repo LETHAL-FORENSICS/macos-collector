@@ -7,7 +7,7 @@ All changes to macos-collector will be documented in this file.
 - DSStore File Collection (.DS_Store)
 - Unified Logs Collection
 
-## Fiex
+## Fixed
 - Minor fixes and improvements
 
 ## [1.0.0] - 2025-10-30
