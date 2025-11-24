@@ -1,6 +1,18 @@
 # Changelog  
 
-All changes to macos-collector will be documented in this file.  
+All changes to macos-collector will be documented in this file. 
+
+## [1.2.0] - 2025-11-24
+### Added
+- Sysdiagnose Logs Collection
+- BTM Dump File Collection (Background Task Management)
+- DSStore: DMG Creation (read-only)
+- FSEvents: DMG Creation (read-only)
+- Triage Mode: Collect ALL supported macOS Forensic Artifacts
+- KnockKnock (Persistence Enumerator by Objective-See)
+
+## Fixed
+- Minor fixes and improvements
 
 ## [1.1.0] - 2025-11-17
 ### Added

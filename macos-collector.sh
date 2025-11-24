@@ -6,7 +6,7 @@
 # @copyright: 	Copyright (c) 2025 Martin Willing. All rights reserved. Licensed under the MIT license.
 # @contact: 	Any feedback or suggestions are always welcome and much appreciated - mwilling@lethal-forensics.com
 # @url: 		https://lethal-forensics.com/
-# @date: 		2025-11-18
+# @date: 		2025-11-24
 #
 #
 # ██╗     ███████╗████████╗██╗  ██╗ █████╗ ██╗      ███████╗ ██████╗ ██████╗ ███████╗███╗   ██╗███████╗██╗ ██████╗███████╗
@@ -58,6 +58,9 @@
 # https://github.com/stuartjash/aftermath
 # https://github.com/jamf/jamfprotect/tree/main/soar_playbooks/aftermath_collection
 #
+# KnockKnock v3.1.0 (2025-01-05)
+# https://objective-see.com/products/knockknock.html
+#
 #
 # Tested on macOS Sequoia 26.1.0
 #
@@ -108,10 +111,13 @@ echo ""
 echo "Options:"
 echo "-c / --collect         Scan and collect forensic artifacts w/ Aftermath (Step #1)"
 echo "-a / --analyze         Analyze previous collected Aftermath archive (Step #2)"
+echo "-b / --btm             Collect BTM Dump File (Background Task Management)"
 echo "-d / --ds_store        Collect .DS_Store Files"
 echo "-f / --fsevents        Collect FSEvents Data"
+echo "-k / --knockknock      Scan Live System w/ KnockKnock (Persistence)"
 echo "-l / --logs            Collect Apple Unified Logs (AUL)"
 echo "-s / --sysdiagnose     Collect Sysdiagnose Logs"
+echo "-t / --triage          Collect ALL supported macOS Forensic Artifacts"
 echo "-h / --help            Show this help message"
 echo ""
 exit 0
@@ -125,10 +131,13 @@ echo ""
 echo "Options:"
 echo "-c / --collect         Scan and collect forensic artifacts w/ Aftermath (Step #1)"
 echo "-a / --analyze         Analyze previous collected Aftermath archive (Step #2)"
+echo "-b / --btm             Collect BTM Dump File (Background Task Management)"
 echo "-d / --ds_store        Collect .DS_Store Files"
 echo "-f / --fsevents        Collect FSEvents Data"
+echo "-k / --knockknock      Scan Live System w/ KnockKnock (Persistence)"
 echo "-l / --logs            Collect Apple Unified Logs (AUL)"
 echo "-s / --sysdiagnose     Collect Sysdiagnose Logs"
+echo "-t / --triage          Collect ALL supported macOS Forensic Artifacts"
 echo "-h / --help            Show this help message"
 echo ""
 exit 0
@@ -283,7 +292,7 @@ echo "[Info]  LoggedInUser: $LoggedInUser"
 # XProtect
 FILE="/Library/Apple/System/Library/CoreServices/XProtect.bundle/Contents/Info.plist"
 if [[ -f "$FILE" ]]; then
-	VERSION=$(/usr/bin/defaults read "/Library/Apple/System/Library/CoreServices/XProtect.bundle/Contents/Info.plist" CFBundleShortVersionString)
+	VERSION=$(/usr/bin/defaults read "$FILE" CFBundleShortVersionString)
 	YARA=$(/bin/cat "/Library/Apple/System/Library/CoreServices/XProtect.bundle/Contents/Resources/XProtect.yara" | /usr/bin/grep -c "^rule")
 	echo "[Info]  XProtect Version: $VERSION ($YARA YARA rules)"
 fi
@@ -294,14 +303,14 @@ fi
 # XProtect Remediator (XPR)
 FILE="/Library/Apple/System/Library/CoreServices/XProtect.app/Contents/Info.plist"
 if [[ -f "$FILE" ]]; then
-	VERSION=$(/usr/bin/defaults read "/Library/Apple/System/Library/CoreServices/XProtect.app/Contents/Info.plist" CFBundleShortVersionString)
+	VERSION=$(/usr/bin/defaults read "$FILE" CFBundleShortVersionString)
 	echo "[Info]  XProtect Remediator Version: $VERSION"
 fi
 
 # Malware Removal Tool (MRT)
 FILE="/Library/Apple/System/Library/CoreServices/MRT.app/Contents/Info.plist" # Catalina 10.15
 if [[ -f "$FILE" ]]; then
-	VERSION=$(/usr/bin/defaults read "/Library/Apple/System/Library/CoreServices/MRT.app/Contents/Info.plist" CFBundleShortVersionString)
+	VERSION=$(/usr/bin/defaults read "$FILE" CFBundleShortVersionString)
 	COUNT=$(/usr/bin/strings -a "/Library/Apple/System/Library/CoreServices/MRT.app/Contents/MacOS/MRT" | /usr/bin/grep -c "^OSX.")
 	echo "[Info]  MRT Version: $VERSION ($COUNT Signatures)"
 fi
@@ -469,6 +478,53 @@ END_ANALYSIS=$(/bin/date +%s)
 ELAPSED_TIME_ANALYSIS=$(($END_ANALYSIS - $START_ANALYSIS))
 echo "Aftermath Analysis: $(($ELAPSED_TIME_ANALYSIS/60)) min $(($ELAPSED_TIME_ANALYSIS%60)) sec" >> "$OUTPUT"/Stats.txt
 	
+}
+
+#############################################################
+#############################################################
+
+BTM_Dump()
+
+{
+
+# Background Task Management (BTM)
+
+# Stats
+START_BTM=$(/bin/date +%s)
+
+# Collecting BTM Dump File
+echo "[Info]  Collecting BTM Dump File ..."
+/bin/mkdir -p "$OUTPUT/BTM"
+sudo /usr/bin/sfltool dumpbtm > "$OUTPUT/BTM/btm.txt"
+
+# File Size
+FILE="$OUTPUT/BTM/btm.txt"
+if [[ -s "$FILE" ]]; then
+	BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{print $5}')
+	FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.0f %s", $1, v[s] }')
+	echo "[Info]  File Size (TXT): $FILESIZE ( $BYTES bytes )"
+fi
+
+# MD5 Calculation
+if [[ -s $(/bin/ls -A "$FILE") ]]; then
+	echo "[Info]  Calculating MD5 checksum of BTM Dump File ..."
+	MD5=$(/sbin/md5 "$FILE" | /usr/bin/awk '{print $4}' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
+	echo "[Info]  MD5 Hash: $MD5"
+fi
+
+# Count User IDs
+COUNT=$(/bin/cat $FILE | /usr/bin/grep -c "Records for UID")
+echo "[Info]  $COUNT User ID's found"
+
+# Count Background Items (Item Records)
+TOTAL=$(/bin/cat $FILE | /usr/bin/grep -E -c "^ #\d+:")
+echo "[Info]  $TOTAL Background Item(s) found"
+
+# Stats
+END_BTM=$(/bin/date +%s)
+ELAPSED_TIME_BTM=$(($END_BTM - $START_BTM))
+echo "BTM Dump File Collection: $(($ELAPSED_TIME_BTM/60)) min $(($ELAPSED_TIME_BTM%60)) sec" >> "$OUTPUT"/Stats.txt
+
 }
 
 #############################################################
@@ -806,6 +862,87 @@ echo "Sysdiagnose Logs Collection: $(($ELAPSED_TIME_SYSDIAGNOSE/60)) min $(($ELA
 #############################################################
 #############################################################
 
+KnockKnock()
+
+{
+
+# Who's there? See what's persistently installed on your Mac.
+
+# KnockKnock tells you who's there, querying your system for any software that leverages many of the myriad of persistence mechanisms (Persistence Enumerator).
+# https://attack.mitre.org/tactics/TA0003/
+
+# Stats
+START_KNOCK=$(/bin/date +%s)
+
+# Verify File Integrity
+ExpectedTeamID="VBG97UB4TA" # Objective-See, LLC (VBG97UB4TA)
+Application="$SCRIPT_DIR/tools/KnockKnock/KnockKnock.app"
+TeamID=$(/usr/sbin/spctl --assess --type execute -vv "$Application" 2>&1 | awk '/origin=/ {print $NF }' | tr -d '()')
+
+if [[ "$TeamID" = "$ExpectedTeamID" ]]; then
+
+	# KnockKnock Version
+	FILE="$SCRIPT_DIR/tools/KnockKnock/KnockKnock.app/Contents/Info.plist"
+	if [[ -f "$FILE" ]]; then
+		VERSION=$(/usr/bin/defaults read "$FILE" CFBundleShortVersionString)
+		echo "[Info]  KnockKnock Version: $VERSION"
+		echo "[Info]  File Integrity: OK"
+	fi
+else
+	echo -e "\033[91m[ALERT] File Integrity: FAILURE\033[0m"
+	exit 1
+fi
+
+# Launch KnockKnock /wo VirusTotal
+echo "[Info]  Scanning Live System w/ KnockKnock [approx. 1-2 min] ..."
+/bin/mkdir -p "$OUTPUT"/KnockKnock/
+cd tools/KnockKnock/
+sudo ./KnockKnock.app/Contents/MacOS/KnockKnock -whosthere -verbose -skipVT > "$OUTPUT/KnockKnock/WhoIsThere-draft.json"
+cd $SCRIPT_DIR
+
+# Output
+if [[ -s "$OUTPUT/KnockKnock/WhoIsThere-draft.json" ]]; then
+
+	# JSON
+	/bin/cat "$OUTPUT/KnockKnock/WhoIsThere-draft.json" | /usr/bin/tail -n 1 > "$OUTPUT/KnockKnock/WhoIsThere.json"
+
+	# TXT
+	/bin/cat "$OUTPUT/KnockKnock/WhoIsThere-draft.json" | /usr/bin/sed '$d' > "$OUTPUT/KnockKnock/KnockKnock.txt"
+fi
+
+# File Size
+FILE="$OUTPUT/KnockKnock/WhoIsThere.json"
+if [[ -s "$FILE" ]]; then
+	BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{print $5}')
+	FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.0f %s", $1, v[s] }')
+	echo "[Info]  File Size (JSON): $FILESIZE ( $BYTES bytes )"
+fi
+
+# Results
+FILE="$OUTPUT/KnockKnock/KnockKnock.txt"
+if [[ -s "$FILE" ]]; then
+	COUNT=$(/bin/cat "$FILE" | /usr/bin/grep "persistent items" | /usr/bin/awk '{print $1}')
+	echo "[Info]  $COUNT Persistent Item(s) found"
+	echo "[Info]  VirusTotal Results: N/A (Disabled)"
+	echo "[!] VirusTotal Results: N/A (Disabled)" >> "$OUTPUT/KnockKnock/KnockKnock.txt"
+fi
+
+# Cleaning up
+FILE="$OUTPUT/KnockKnock/WhoIsThere-draft.json"
+if [[ -f "$FILE" ]]; then
+	rm "$FILE"
+fi
+
+# Stats
+END_KNOCK=$(/bin/date +%s)
+ELAPSED_TIME_KNOCK=$(($END_KNOCK - $START_KNOCK))
+echo "KnockKnock Scan Completed: $(($ELAPSED_TIME_KNOCK/60)) min $(($ELAPSED_TIME_KNOCK%60)) sec" >> "$OUTPUT"/Stats.txt
+
+}
+
+#############################################################
+#############################################################
+
 Footer()
 
 {
@@ -845,6 +982,15 @@ case $1 in
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
 	;;
+	-b|--btm)
+	{
+	Header
+	Check_Admin
+	Output
+	BTM_Dump
+	Footer
+	} 2>&1 | /usr/bin/tee screenlog-draft.txt
+	;;
 	-c|--collect)
 	{
 	Header
@@ -877,6 +1023,17 @@ case $1 in
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
 	;;
+	-k|--knockknock)
+	{
+	Header
+	Check_Admin
+	Check_FDA
+	Output
+	BasicInfo
+	KnockKnock
+	Footer
+	} 2>&1 | /usr/bin/tee screenlog-draft.txt
+	;;
 	-l|--logs)
 	{
 	Header
@@ -893,6 +1050,22 @@ case $1 in
 	Check_Admin
 	Output
 	BasicInfo
+	Sysdiagnose
+	Footer
+	} 2>&1 | /usr/bin/tee screenlog-draft.txt
+	;;
+	-t|--triage)
+	{
+	Header
+	Check_Admin
+	Check_FDA
+	Output
+	BasicInfo
+	Aftermath_Collection_DeepScan
+	DS_Store
+	FSEvents
+	KnockKnock
+	UnifiedLogs
 	Sysdiagnose
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
