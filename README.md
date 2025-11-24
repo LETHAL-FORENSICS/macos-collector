@@ -53,7 +53,7 @@ sudo bash macos-collector.sh --triage
 **Fig 3:** Analyzing Aftermath Archive &#8594; switch to a clean macOS endpoint  
 
 ![BTM](https://github.com/user-attachments/assets/8b4d7bbd-8b02-4d45-a52f-fcccd9ae1b0b)  
-**Fig 4:** Collecting BTM Dump File  
+**Fig 4:** Collecting BTM Dump File (Background Task Management)  
 
 ![DS_Store](https://github.com/user-attachments/assets/0af153b0-df11-4ec4-a6de-3fd6fec8cb41)  
 **Fig 5:** Collecting DS_Store Files  
