@@ -36,9 +36,14 @@ Example 3 - Collect FSEvents Data from a compromised macOS endpoint
 sudo bash macos-collector.sh --fsevents  
 ```
 
+Example 4 - Collect ALL supported macOS Forensic Artifacts     
+```Shell
+sudo bash macos-collector.sh --triage  
+```
+
 </br>
 
-![Help-Message](https://github.com/user-attachments/assets/2f5d9677-4fdd-491a-93ce-4a0ed9718add)  
+![Help-Message](https://github.com/user-attachments/assets/33ab25f2-49f1-4182-9700-cad96334bd57)  
 **Fig 1:** Help Message  
 
 ![Aftermath-Collection](https://github.com/user-attachments/assets/27d73f2d-c139-446d-b1b6-20f0d4a52fb8)  
@@ -47,14 +52,23 @@ sudo bash macos-collector.sh --fsevents
 ![Aftermath-Analysis](https://github.com/user-attachments/assets/cfa5c6d1-c188-4648-ac7f-111ade15c943)  
 **Fig 3:** Analyzing Aftermath Archive &#8594; switch to a clean macOS endpoint  
 
-![FSEvents](https://github.com/user-attachments/assets/c3d9a361-8d85-47d4-9da9-08671e038f67)  
-**Fig 4:** Collecting FSEvents Data  
+![BTM](https://github.com/user-attachments/assets/8b4d7bbd-8b02-4d45-a52f-fcccd9ae1b0b)  
+**Fig 4:** Collecting BTM Dump File  
 
 ![DS_Store](https://github.com/user-attachments/assets/0af153b0-df11-4ec4-a6de-3fd6fec8cb41)  
 **Fig 5:** Collecting DS_Store Files  
 
+![FSEvents](https://github.com/user-attachments/assets/c3d9a361-8d85-47d4-9da9-08671e038f67)  
+**Fig 6:** Collecting FSEvents Data  
+
+![KnockKnock](https://github.com/user-attachments/assets/69a15eca-54c2-46ad-933b-f95f167c42ed)  
+**Fig 7:** Live System Scan w/ KnockKnock (Persistence)    
+
 ![UnifiedLogs](https://github.com/user-attachments/assets/f80a175c-ee1b-4b95-95d3-c3005a009510)  
-**Fig 6:** Collecting Apple Unified Logs (AUL)
+**Fig 8:** Collecting Apple Unified Logs (AUL)  
+
+![Sysdiagnose](https://github.com/user-attachments/assets/25e3b02a-a6ed-480f-a10f-1db5eb37376f)  
+**Fig 9:** Collecting Sysdiagnose Logs  
 
 ## Dependencies
 Aftermath v2.3.0 (2025-09-24)  
@@ -62,6 +76,9 @@ MD5: A0668EB91650513F40CE8753A277E0E0
 SHA1: 782077A3FE5351C72157142C437EA5D20BEF00E9  
 SHA256: A58489ACC3E3BB7D5BC70B66DFF5897CBF93BFE38E66C119C4FF1013559D912A  
 https://github.com/jamf/aftermath  
+
+KnockKnock v3.1.0 (2025-01-05)  
+https://objective-see.com/products/knockknock.html  
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.  
@@ -72,3 +89,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 [TrueTree by Jaron Bradley](https://github.com/themittenmac/TrueTree)  
 [The Mitten Mac - Incident Response and Threat Hunting Knowledge for macOs](https://themittenmac.com/)  
 [What Happened?: Swiftly Investigating macOS Security Incidents with Aftermath | JNUC 2023](https://www.youtube.com/watch?v=lvfQMnkOZDM)  
+[KnockKnock - Persistence Enumerator by Objective-See](https://objective-see.org/products/knockknock.html)  
