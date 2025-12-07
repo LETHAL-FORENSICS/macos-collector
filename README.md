@@ -43,7 +43,7 @@ sudo bash macos-collector.sh --triage
 
 </br>
 
-![Help-Message](https://github.com/user-attachments/assets/33ab25f2-49f1-4182-9700-cad96334bd57)  
+![Help-Message](https://github.com/user-attachments/assets/17af2a5f-5388-4092-8a5a-7661bae77057)  
 **Fig 1:** Help Message  
 
 ![Aftermath-Collection](https://github.com/user-attachments/assets/27d73f2d-c139-446d-b1b6-20f0d4a52fb8)  
@@ -69,6 +69,9 @@ sudo bash macos-collector.sh --triage
 
 ![Sysdiagnose](https://github.com/user-attachments/assets/25e3b02a-a6ed-480f-a10f-1db5eb37376f)  
 **Fig 9:** Collecting Sysdiagnose Logs  
+
+![Spotlight](https://github.com/user-attachments/assets/17dddf9f-819d-4c6b-a7ea-417ec469d0b8)  
+**Fig 10:** Spotlight Database File Collection (incl. Live Searches)  
 
 ## Dependencies
 Aftermath v2.3.0 (2025-09-24)  

@@ -2,6 +2,14 @@
 
 All changes to macos-collector will be documented in this file. 
 
+## [1.3.0] - 2025-12-07
+### Added
+- Spotlight Database File Collection (incl. Live Searches)
+- BTM Database File Collection
+
+## Fixed
+- Minor fixes and improvements
+
 ## [1.2.0] - 2025-11-24
 ### Added
 - Sysdiagnose Logs Collection

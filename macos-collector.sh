@@ -6,7 +6,7 @@
 # @copyright: 	Copyright (c) 2025 Martin Willing. All rights reserved. Licensed under the MIT license.
 # @contact: 	Any feedback or suggestions are always welcome and much appreciated - mwilling@lethal-forensics.com
 # @url: 		https://lethal-forensics.com/
-# @date: 		2025-11-24
+# @date: 		2025-12-07
 #
 #
 # ██╗     ███████╗████████╗██╗  ██╗ █████╗ ██╗      ███████╗ ██████╗ ██████╗ ███████╗███╗   ██╗███████╗██╗ ██████╗███████╗
@@ -30,25 +30,30 @@
 # Help:
 # sudo bash macos-collector.sh -h
 #
-# Example:
+# Example 1:
 # sudo bash macos-collector.sh --collect
 #
 # Collect forensic artifacts from a compromised macOS endpoint using Aftermath.
 #
-# Example:
+# Example 2:
 # sudo bash macos-collector.sh --analyze
 #
 # Analyze previous collected Aftermath archive file.
 #
-# Example:
+# Example 3:
 # sudo bash macos-collector.sh --ds_store
 #
 # Collect .DS_Store files from a macOS endpoint.
 #
-# Example:
+# Example 4:
 # sudo bash macos-collector.sh --fsevents
 #
 # Collect FSEvents Data from a macOS endpoint.
+#
+# Example 5:
+# sudo bash macos-collector.sh --triage
+#
+# Collect ALL supported macOS Forensic Artifacts
 #
 #
 # Dependencies:
@@ -116,6 +121,7 @@ echo "-d / --ds_store        Collect .DS_Store Files"
 echo "-f / --fsevents        Collect FSEvents Data"
 echo "-k / --knockknock      Scan Live System w/ KnockKnock (Persistence)"
 echo "-l / --logs            Collect Apple Unified Logs (AUL)"
+echo "-m / --metadata        Collect Spotlight Database (Desktop Search Engine)"
 echo "-s / --sysdiagnose     Collect Sysdiagnose Logs"
 echo "-t / --triage          Collect ALL supported macOS Forensic Artifacts"
 echo "-h / --help            Show this help message"
@@ -136,6 +142,7 @@ echo "-d / --ds_store        Collect .DS_Store Files"
 echo "-f / --fsevents        Collect FSEvents Data"
 echo "-k / --knockknock      Scan Live System w/ KnockKnock (Persistence)"
 echo "-l / --logs            Collect Apple Unified Logs (AUL)"
+echo "-m / --metadata        Collect Spotlight Database (Desktop Search Engine)"
 echo "-s / --sysdiagnose     Collect Sysdiagnose Logs"
 echo "-t / --triage          Collect ALL supported macOS Forensic Artifacts"
 echo "-h / --help            Show this help message"
@@ -239,7 +246,7 @@ PRODUCTVERSION=$(/usr/bin/sw_vers -productVersion)
 
 if echo "$PRODUCTVERSION" | /usr/bin/grep -q "^10\."
 then
-	os_num=$(echo "$PRODUCTVERSION" | /usr/bin/awk -F '[.]' '{print $2}')
+	os_num=$(echo "$PRODUCTVERSION" | /usr/bin/awk -F '[.]' '{ print $2 }')
 	os_codename=(
 	["10"]="Yosemite"
 	["11"]="El Capitan"
@@ -249,7 +256,7 @@ then
 	["15"]="Catalina"
 	)
 else
-	os_num=$(echo "$PRODUCTVERSION" | /usr/bin/awk -F '[.]' '{print $1}')
+	os_num=$(echo "$PRODUCTVERSION" | /usr/bin/awk -F '[.]' '{ print $1 }')
 	os_codename=(
 	["11"]="Big Sur"
 	["12"]="Monterey"
@@ -337,7 +344,7 @@ START_COLLECTION=$(/bin/date +%s)
 
 # Verify File Integrity
 if [[ -s $(/bin/ls -A "$AFTERMATH") ]]; then
-	MD5=$(/sbin/md5 "$AFTERMATH" | /usr/bin/awk '{print $4}' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
+	MD5=$(/sbin/md5 "$AFTERMATH" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
 	if [[ "$MD5" = "$FILEHASH" ]]; then
 
 		# Aftermath Version
@@ -364,14 +371,14 @@ echo "[Info]  Archive Name: $ARCHIVE"
 
 # Archive Size
 FILE="$OUTPUT/Aftermath_Collection/$ARCHIVE"
-BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{print $5}')
+BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
 FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
 echo "[Info]  Archive Size: $FILESIZE"
 
 # MD5 Calculation
 if [[ -s $(/bin/ls -A "$FILE") ]]; then
 	echo "[Info]  Calculating MD5 checksum of Aftermath Archive ..."
-	MD5=$(/sbin/md5 "$FILE" | /usr/bin/awk '{print $4}' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
+	MD5=$(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
 	echo "[Info]  MD5 Hash: $MD5"
 fi
 
@@ -422,7 +429,7 @@ if [[ -s $(/bin/ls -A "$ARCHIVE_FILE") ]]
 then
 	# Verify File Integrity
 	if [[ -s $(/bin/ls -A "$AFTERMATH") ]]; then
-		MD5=$(/sbin/md5 "$AFTERMATH" | /usr/bin/awk '{print $4}' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
+		MD5=$(/sbin/md5 "$AFTERMATH" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
 		if [[ "$MD5" = "$FILEHASH" ]]; then
 
 			# Aftermath Version
@@ -447,14 +454,14 @@ then
 
 	# Archive Size
 	FILE="$OUTPUT/Aftermath_Analysis/$ARCHIVE"
-	BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{print $5}')
+	BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
 	FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
 	echo "[Info]  Archive Size: $FILESIZE"
 
 	# MD5 Calculation
 	if [[ -s $(/bin/ls -A "$FILE") ]]; then
 		echo "[Info]  Calculating MD5 checksum of Aftermath Archive ..."
-		MD5=$(/sbin/md5 "$FILE" | /usr/bin/awk '{print $4}' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
+		MD5=$(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
 		echo "[Info]  MD5 Hash: $MD5"
 	fi
 
@@ -492,7 +499,7 @@ BTM_Dump()
 # Stats
 START_BTM=$(/bin/date +%s)
 
-# Collecting BTM Dump File
+# Collecting BTM Dump File (via Shared File List Tool)
 echo "[Info]  Collecting BTM Dump File ..."
 /bin/mkdir -p "$OUTPUT/BTM"
 sudo /usr/bin/sfltool dumpbtm > "$OUTPUT/BTM/btm.txt"
@@ -500,7 +507,7 @@ sudo /usr/bin/sfltool dumpbtm > "$OUTPUT/BTM/btm.txt"
 # File Size
 FILE="$OUTPUT/BTM/btm.txt"
 if [[ -s "$FILE" ]]; then
-	BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{print $5}')
+	BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
 	FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.0f %s", $1, v[s] }')
 	echo "[Info]  File Size (TXT): $FILESIZE ( $BYTES bytes )"
 fi
@@ -508,7 +515,7 @@ fi
 # MD5 Calculation
 if [[ -s $(/bin/ls -A "$FILE") ]]; then
 	echo "[Info]  Calculating MD5 checksum of BTM Dump File ..."
-	MD5=$(/sbin/md5 "$FILE" | /usr/bin/awk '{print $4}' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
+	MD5=$(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
 	echo "[Info]  MD5 Hash: $MD5"
 fi
 
@@ -520,12 +527,84 @@ echo "[Info]  $COUNT User ID's found"
 TOTAL=$(/bin/cat $FILE | /usr/bin/grep -E -c "^ #\d+:")
 echo "[Info]  $TOTAL Background Item(s) found"
 
+# Collecting BTM Database File(s)
+sudo /usr/bin/find "/private/var/db/com.apple.backgroundtaskmanagement" -name "BackgroundItems-v*.btm" -type f > "$OUTPUT/BTM/Files.txt" 2> /dev/null
+if [[ -s "$OUTPUT/BTM/Files.txt" ]]; then
+	echo "[Info]  Collecting BTM Database File(s) ..."
+	/bin/mkdir -p "$OUTPUT/BTM/BTM_Data"
+	sudo /usr/bin/rsync --recursive -av --files-from="$OUTPUT/BTM/Files.txt" / "$OUTPUT/BTM/BTM_Data" >> "$OUTPUT/BTM/Collection.txt" 2>&1
+fi
+
+# Creating read-only Disk Image (APFS)
+SRCFOLDER="/private/var/db/com.apple.backgroundtaskmanagement"
+if [[ -d "$SRCFOLDER" ]]; then
+	if [[ -n "$( ls -A "$SRCFOLDER" )" ]]; then
+		/usr/bin/hdiutil create -fs APFS -srcfolder "$SRCFOLDER" -volname "BTM_Data" -format UDRO "$OUTPUT/BTM/BTM_$SerialNumber.dmg" > /dev/null
+	fi
+fi
+
+# Disk Info (DMG)
+FILE="$OUTPUT/BTM/BTM_$SerialNumber.dmg"
+if [[ -f "$FILE" ]]; then
+	BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
+	FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
+	echo "BTM_$SerialNumber.dmg ($FILESIZE)" > "$OUTPUT/BTM/DiskInfo.txt"
+	echo "MD5: $(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/BTM/DiskInfo.txt"
+	echo "SHA1: $(/usr/bin/openssl sha1 "$FILE" | /usr/bin/awk '{ print $2 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/BTM/DiskInfo.txt"
+	echo "SHA256: $(/usr/bin/openssl dgst -sha256 "$FILE" | /usr/bin/awk '{ print $2 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/BTM/DiskInfo.txt"
+fi
+
+# Count BTM Database File(s)
+COUNT=$(/bin/cat "$OUTPUT/BTM/Files.txt" | /usr/bin/grep -c ^)
+echo "[Info]  $COUNT BTM Database File(s) found"
+
+# Creating Archive File (ZIP)
+if [[ -d "$OUTPUT/BTM/BTM_Data" ]]; then
+	cd "$OUTPUT/BTM"
+	/usr/bin/zip -q -r "BTM_$SerialNumber.zip" BTM_Data
+	cd "$SCRIPT_DIR"
+fi
+
+# Archive Name
+ARCHIVE=$(/bin/ls -l "$OUTPUT/BTM" | /usr/bin/awk '{ print $9 }' | /usr/bin/grep "^BTM_.*.zip$")
+echo "[Info]  Archive Name: $ARCHIVE"
+
+# Archive Size
+FILE="$OUTPUT/BTM/$ARCHIVE"
+BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
+FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
+echo "[Info]  Archive Size: $FILESIZE"
+
+# MD5 Calculation
+if [[ -s $(/bin/ls -A "$FILE") ]]; then
+	echo "[Info]  Calculating MD5 checksum of BTM Archive ..."
+	MD5=$(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
+	echo "[Info]  MD5 Hash: $MD5"
+fi
+
+# Create Time
+BIRTH=$(TZ= /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+echo "[Info]  Create Time: $BIRTH UTC"
+
+# Last Modified Time
+MODIFY=$(TZ= /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+echo "[Info]  Last Modified Time: $MODIFY UTC"
+
+# Cleaning up
+FOLDER="$OUTPUT/BTM/BTM_Data"
+if [[ -d "$FOLDER" ]]; then
+/bin/rm -rf "$FOLDER"
+fi
+
 # Stats
 END_BTM=$(/bin/date +%s)
 ELAPSED_TIME_BTM=$(($END_BTM - $START_BTM))
 echo "BTM Dump File Collection: $(($ELAPSED_TIME_BTM/60)) min $(($ELAPSED_TIME_BTM%60)) sec" >> "$OUTPUT"/Stats.txt
 
 }
+
+# T1543.001 - Launch Agent
+# T1543.004 - Launch Daemons
 
 #############################################################
 #############################################################
@@ -573,12 +652,12 @@ fi
 # Disk Info (DMG)
 FILE="$OUTPUT/DS_Store/DSStore_$SerialNumber.dmg"
 if [[ -f "$FILE" ]]; then
-	BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{print $5}')
+	BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
 	FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
 	echo "DSStore_$SerialNumber.dmg ($FILESIZE)" > "$OUTPUT/DS_Store/DiskInfo.txt"
-	echo "MD5: $(/sbin/md5 "$FILE" | awk '{print $4}' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/DS_Store/DiskInfo.txt"
-	echo "SHA1: $(/usr/bin/openssl sha1 "$FILE" | awk '{print $2}' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/DS_Store/DiskInfo.txt"
-	echo "SHA256: $(/usr/bin/openssl dgst -sha256 "$FILE" | awk '{print $2}' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/DS_Store/DiskInfo.txt"
+	echo "MD5: $(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/DS_Store/DiskInfo.txt"
+	echo "SHA1: $(/usr/bin/openssl sha1 "$FILE" | /usr/bin/awk '{ print $2 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/DS_Store/DiskInfo.txt"
+	echo "SHA256: $(/usr/bin/openssl dgst -sha256 "$FILE" | /usr/bin/awk '{ print $2 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/DS_Store/DiskInfo.txt"
 fi
 
 # Creating Archive File (ZIP)
@@ -594,14 +673,14 @@ echo "[Info]  Archive Name: $ARCHIVE"
 
 # Archive Size
 FILE="$OUTPUT/DS_Store/$ARCHIVE"
-BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{print $5}')
+BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
 FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
 echo "[Info]  Archive Size: $FILESIZE"
 
 # MD5 Calculation
 if [[ -s $(/bin/ls -A "$FILE") ]]; then
 	echo "[Info]  Calculating MD5 checksum of DS_Store Archive ..."
-	MD5=$(/sbin/md5 "$FILE" | /usr/bin/awk '{print $4}' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
+	MD5=$(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
 	echo "[Info]  MD5 Hash: $MD5"
 fi
 
@@ -643,7 +722,7 @@ echo "[Info]  Collecting File System Events ..."
 /bin/mkdir -p "$OUTPUT/FSEvents/FSEvents_Data"
 
 # Count GZIP Files w/ thousands separator
-Total=$(sudo /usr/bin/find "/System/Volumes/Data/.fseventsd/" -type f ! -name 'fseventsd-uuid' | wc -l | awk '{print $1}')
+Total=$(sudo /usr/bin/find "/System/Volumes/Data/.fseventsd/" -type f ! -name 'fseventsd-uuid' | wc -l | awk '{ print $1 }')
 Count=$(/usr/bin/printf "%'d\n" $Total | /usr/bin/tr -s "," ".")
 echo "[Info]  $Count FSEvent Files found"
 
@@ -665,12 +744,12 @@ fi
 # Disk Info (DMG)
 FILE="$OUTPUT/FSEvents/FSEvents_$SerialNumber.dmg"
 if [[ -f "$FILE" ]]; then
-	BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{print $5}')
+	BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
 	FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
 	echo "FSEvents_$SerialNumber.dmg ($FILESIZE)" > "$OUTPUT/FSEvents/DiskInfo.txt"
-	echo "MD5: $(/sbin/md5 "$FILE" | awk '{print $4}' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/FSEvents/DiskInfo.txt"
-	echo "SHA1: $(/usr/bin/openssl sha1 "$FILE" | awk '{print $2}' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/FSEvents/DiskInfo.txt"
-	echo "SHA256: $(/usr/bin/openssl dgst -sha256 "$FILE" | awk '{print $2}' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/FSEvents/DiskInfo.txt"
+	echo "MD5: $(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/FSEvents/DiskInfo.txt"
+	echo "SHA1: $(/usr/bin/openssl sha1 "$FILE" | /usr/bin/awk '{ print $2 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/FSEvents/DiskInfo.txt"
+	echo "SHA256: $(/usr/bin/openssl dgst -sha256 "$FILE" | /usr/bin/awk '{ print $2 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/FSEvents/DiskInfo.txt"
 fi
 
 # Creating Archive File (ZIP)
@@ -686,14 +765,14 @@ echo "[Info]  Archive Name: $ARCHIVE"
 
 # Archive Size
 FILE="$OUTPUT/FSEvents/$ARCHIVE"
-BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{print $5}')
+BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
 FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
 echo "[Info]  Archive Size: $FILESIZE"
 
 # MD5 Calculation
 if [[ -s $(/bin/ls -A "$FILE") ]]; then
 	echo "[Info]  Calculating MD5 checksum of FSEvents Archive ..."
-	MD5=$(/sbin/md5 "$FILE" | /usr/bin/awk '{print $4}' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
+	MD5=$(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
 	echo "[Info]  MD5 Hash: $MD5"
 fi
 
@@ -734,7 +813,7 @@ START_AUL=$(/bin/date +%s)
 echo "[Info]  Collecting Unified Logs (.logarchive) ..."
 /bin/mkdir -p "$OUTPUT/UnifiedLogs/"
 LOGARCHIVE="$OUTPUT/UnifiedLogs/system_logs.logarchive"
-sudo /usr/bin/log collect --output "$LOGARCHIVE" > /dev/null
+sudo /usr/bin/log collect --output "$LOGARCHIVE" > /dev/null 2>&1
 
 # Creating Archive File
 if [[ -d "$LOGARCHIVE" ]]; then
@@ -750,14 +829,14 @@ echo "[Info]  Archive Name: $ARCHIVE"
 
 # Archive Size
 FILE="$OUTPUT/UnifiedLogs/$ARCHIVE"
-BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{print $5}')
+BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
 FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
 echo "[Info]  Archive Size: $FILESIZE"
 
 # MD5 Calculation
 if [[ -s $(/bin/ls -A "$FILE") ]]; then
 	echo "[Info]  Calculating MD5 checksum of Unified Logs Archive ..."
-	MD5=$(/sbin/md5 "$FILE" | /usr/bin/awk '{print $4}' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
+	MD5=$(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
 	echo "[Info]  MD5 Hash: $MD5"
 fi
 
@@ -828,14 +907,14 @@ echo "[Info]  Archive Name: $ARCHIVE"
 
 # Archive Size
 FILE="$OUTPUT/Sysdiagnose/$ARCHIVE"
-BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{print $5}')
+BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
 FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
 echo "[Info]  Archive Size: $FILESIZE"
 
 # MD5 Calculation
 if [[ -s $(/bin/ls -A "$FILE") ]]; then
-	echo "[Info]  Calculating MD5 checksum of Unified Logs Archive ..."
-	MD5=$(/sbin/md5 "$FILE" | /usr/bin/awk '{print $4}' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
+	echo "[Info]  Calculating MD5 checksum of Sysdiagnose Logs Archive ..."
+	MD5=$(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
 	echo "[Info]  MD5 Hash: $MD5"
 fi
 
@@ -869,6 +948,7 @@ KnockKnock()
 # Who's there? See what's persistently installed on your Mac.
 
 # KnockKnock tells you who's there, querying your system for any software that leverages many of the myriad of persistence mechanisms (Persistence Enumerator).
+
 # https://attack.mitre.org/tactics/TA0003/
 
 # Stats
@@ -877,7 +957,7 @@ START_KNOCK=$(/bin/date +%s)
 # Verify File Integrity
 ExpectedTeamID="VBG97UB4TA" # Objective-See, LLC (VBG97UB4TA)
 Application="$SCRIPT_DIR/tools/KnockKnock/KnockKnock.app"
-TeamID=$(/usr/sbin/spctl --assess --type execute -vv "$Application" 2>&1 | awk '/origin=/ {print $NF }' | tr -d '()')
+TeamID=$(/usr/sbin/spctl --assess --type execute -vv "$Application" 2>&1 | awk '/origin=/ {print $NF }' | /usr/bin/tr -d '()')
 
 if [[ "$TeamID" = "$ExpectedTeamID" ]]; then
 
@@ -913,7 +993,7 @@ fi
 # File Size
 FILE="$OUTPUT/KnockKnock/WhoIsThere.json"
 if [[ -s "$FILE" ]]; then
-	BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{print $5}')
+	BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
 	FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.0f %s", $1, v[s] }')
 	echo "[Info]  File Size (JSON): $FILESIZE ( $BYTES bytes )"
 fi
@@ -921,7 +1001,7 @@ fi
 # Results
 FILE="$OUTPUT/KnockKnock/KnockKnock.txt"
 if [[ -s "$FILE" ]]; then
-	COUNT=$(/bin/cat "$FILE" | /usr/bin/grep "persistent items" | /usr/bin/awk '{print $1}')
+	COUNT=$(/bin/cat "$FILE" | /usr/bin/grep "persistent items" | /usr/bin/awk '{ print $1 }')
 	echo "[Info]  $COUNT Persistent Item(s) found"
 	echo "[Info]  VirusTotal Results: N/A (Disabled)"
 	echo "[!] VirusTotal Results: N/A (Disabled)" >> "$OUTPUT/KnockKnock/KnockKnock.txt"
@@ -936,7 +1016,170 @@ fi
 # Stats
 END_KNOCK=$(/bin/date +%s)
 ELAPSED_TIME_KNOCK=$(($END_KNOCK - $START_KNOCK))
-echo "KnockKnock Scan Completed: $(($ELAPSED_TIME_KNOCK/60)) min $(($ELAPSED_TIME_KNOCK%60)) sec" >> "$OUTPUT"/Stats.txt
+echo "KnockKnock Scan: $(($ELAPSED_TIME_KNOCK/60)) min $(($ELAPSED_TIME_KNOCK%60)) sec" >> "$OUTPUT"/Stats.txt
+
+}
+
+#############################################################
+#############################################################
+
+Spotlight()
+
+{
+
+# Spotlight Database (Desktop Search Engine)
+
+# Spotlight indexes the system to allow the user to search for files quickly. Indexing includes file metadata, extended attributes, and content of some file types.
+
+# The Spotlight-V100 directory is located in the root of the volume contains the Spotlight store (.store.db and store.db). Its presence indicates that the volume has been indexed. 
+
+# Stats
+START_SPOTLIGHT=$(/bin/date +%s)
+
+# Collecting Volume Configuration (VolumeConfiguration.plist --> contains indexing exclusions and other Spotlight configuration data)
+FILE="/System/Volumes/Data/.Spotlight-V100/VolumeConfiguration.plist"
+if [[ -f "$FILE" ]]; then
+	
+	# Volume Configuration (Data Volume)
+	/bin/mkdir -p "$OUTPUT/Spotlight"
+	sudo /usr/bin/defaults read "$FILE" > "$OUTPUT/Spotlight/VolumeConfiguration.txt"
+
+	# Universal Unique Identifier (Data Volume)
+	UUID=$(sudo /usr/bin/defaults read "$FILE" ConfigurationVolumeUUID)
+	echo "[Info]  Data Volume: $UUID"
+fi
+
+# Collecting Spotlight Configuration Files (com.apple.Spotlight.plist --> contains user-specific settings and preferences for the Spotlight search feature)
+UserList=$(/usr/bin/dscl . -list /Users UniqueID | /usr/bin/awk '$2 >= 500 { print $1; }')
+for User in $UserList; do
+	/usr/bin/defaults read "/Users/$User/Library/Preferences/com.apple.Spotlight.plist" > "$OUTPUT/Spotlight/UserConfiguration_$User.txt"
+done
+
+# Collecting Spotlight Database (.Spotlight-V100 Directory on Data Volume --> contains Spotlight index database file(s) and database dependencies)
+echo "[Info]  Collecting Spotlight Database [approx. 1-3 min] ..."
+/bin/mkdir -p "$OUTPUT/Spotlight/Spotlight_Data"
+SOURCE="/System/Volumes/Data/.Spotlight-V100/"
+DESTINATION="$OUTPUT/Spotlight/Spotlight_Data"
+if [[ -d "$SOURCE" ]] && [[ -n "$(/bin/ls -A "$SOURCE")" ]]; then
+	sudo /usr/bin/rsync -av "$SOURCE" "$DESTINATION" >> "$OUTPUT/Spotlight/LogFile.txt"
+fi
+
+# Creating read-only Disk Image (APFS)
+SRCFOLDER="/System/Volumes/Data/.Spotlight-V100/"
+if [[ -d "$SRCFOLDER" ]]; then
+	/usr/bin/hdiutil create -fs APFS -srcfolder "$SRCFOLDER" -volname "Spotlight_Data" -format UDRO "$OUTPUT/Spotlight/Spotlight_$SerialNumber.dmg" > /dev/null
+fi
+
+# Disk Info (DMG) --> You can open these files in macOS only.
+# Note: It seems that specific system files stored in the .Spotlight-V100 directory are compressed and not supported by the "APFS for Windows" driver by Paragon Software.
+FILE="$OUTPUT/Spotlight/Spotlight_$SerialNumber.dmg"
+if [[ -f "$FILE" ]]; then
+	BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
+	FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
+	echo "Spotlight_$SerialNumber.dmg ($FILESIZE)" > "$OUTPUT/Spotlight/DiskInfo.txt"
+	echo "MD5: $(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/Spotlight/DiskInfo.txt"
+	echo "SHA1: $(/usr/bin/openssl sha1 "$FILE" | /usr/bin/awk '{ print $2 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/Spotlight/DiskInfo.txt"
+	echo "SHA256: $(/usr/bin/openssl dgst -sha256 "$FILE" | /usr/bin/awk '{ print $2 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/Spotlight/DiskInfo.txt"
+fi
+
+# Creating Archive File (ZIP)
+if [[ -d "$OUTPUT/Spotlight/Spotlight_Data" ]]; then
+	if [[ -n "$( /bin/ls -A "$OUTPUT/Spotlight/Spotlight_Data" )" ]]; then
+		echo "[Info]  Compressing Spotlight Database (.zip) ..."
+		cd "$OUTPUT/Spotlight"
+		/usr/bin/zip -q -r "Spotlight_$SerialNumber.zip" Spotlight_Data
+		cd "$SCRIPT_DIR"
+	fi
+fi
+
+# Archive Name
+ARCHIVE=$(/bin/ls -l "$OUTPUT"/Spotlight | /usr/bin/awk '{ print $9 }' | /usr/bin/grep "^Spotlight_.*.zip$")
+echo "[Info]  Archive Name: $ARCHIVE"
+
+# Archive Size
+FILE="$OUTPUT/Spotlight/$ARCHIVE"
+BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
+FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
+echo "[Info]  Archive Size: $FILESIZE"
+
+# MD5 Calculation
+if [[ -s $(/bin/ls -A "$FILE") ]]; then
+	echo "[Info]  Calculating MD5 checksum of Spotlight Archive ..."
+	MD5=$(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
+	echo "[Info]  MD5 Hash: $MD5"
+fi
+
+# Create Time
+BIRTH=$(TZ= /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+echo "[Info]  Create Time: $BIRTH UTC"
+
+# Last Modified Time
+MODIFY=$(TZ= /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+echo "[Info]  Last Modified Time: $MODIFY UTC"
+
+# Cleaning up
+FOLDER="$OUTPUT/Spotlight/Spotlight_Data"
+if [[ -d "$FOLDER" ]]; then
+	/bin/rm -rf "$FOLDER"
+fi
+
+# Spotlight Live Searches (Apple Extended Metadata)
+echo "[Info]  Performing Native Spotlight Searches ..."
+/bin/mkdir -p "$OUTPUT/Spotlight/Searches"
+
+# MDItemWhereFroms
+# Describes where the item was obtained from. For example, a downloaded file may refer to the URL, files received by email may indicate the sender’s email address, message subject, etc.
+sudo /usr/bin/mdfind -onlyin / -name "kMDItemWhereFroms == *" > "$OUTPUT/Spotlight/Searches/kMDItemWhereFroms.txt"
+
+# Count files with 'MDItemWhereFroms' attribute
+FILE="$OUTPUT/Spotlight/Searches/kMDItemWhereFroms.txt"
+if [[ -s "$FILE" ]]; then
+	LINES=$(/bin/cat "$FILE" | /usr/bin/grep -c ^)
+	COUNT=$(/usr/bin/printf "%'d\n" $LINES | /usr/bin/tr -s "," ".")
+	echo "[Info]  $COUNT Downloaded File(s) found (kMDItemWhereFroms)" # Downloaded from the Internet or transferred from an external source
+fi
+
+# Creating CSV Report(s)
+OUTPUT_FOLDER="$OUTPUT/Spotlight/Searches/CSV"
+
+echo "[Info]  Creating CSV Report(s) ..."
+/bin/mkdir -p "$OUTPUT_FOLDER"
+
+# MDItemWhereFroms
+
+# Header
+echo "\"kMDItemDateAdded\",\"FilePath\",\"FileName\",\"kMDItemKind\",\"MD5\",\"SHA1\",\"SHA256\",\"kMDItemWhereFroms\",\"_kMDItemOwnerUserID\",\"UserName\",\"kMDItemLastUsedDate\",\"kMDItemUseCount\",\"QuarantineFlag\",\"QuarantineTimestamp\",\"Origin\",\"FileIdentifier\"" > "$OUTPUT_FOLDER/kMDItemWhereFroms.csv"
+
+# Data
+while read FILEPATH
+do
+	kMDItemDateAdded=$(/usr/bin/mdls -name kMDItemDateAdded "$FILEPATH" | /usr/bin/sed -e 's/.*= //g')
+	FileName=$(/usr/bin/basename "$FILEPATH")
+	kMDItemKind=$(/usr/bin/mdls -name kMDItemKind "$FILEPATH" | /usr/bin/grep -o '"[^"]\+"' | /usr/bin/tr -d '"')
+	MD5=$(/sbin/md5 "$FILEPATH" | /usr/bin/sed -e 's/.*= //g')
+	SHA1=$(/usr/bin/openssl sha1 "$FILEPATH" | /usr/bin/sed -e 's/.*= //g')
+	SHA256=$(/usr/bin/openssl dgst -sha256 "$FILEPATH" | /usr/bin/sed -e 's/.*= //g')
+	kMDItemWhereFroms=$(/usr/bin/mdls -name kMDItemWhereFroms "$FILEPATH" | /usr/bin/grep -o '"[^"]\+"' | /usr/bin/tr -d '"' | uniq)
+	_kMDItemOwnerUserID=$(/usr/bin/mdls -name _kMDItemOwnerUserID "$FILEPATH" | /usr/bin/sed -e 's/.*= //g')
+	UserName=$(/usr/bin/dscl . -list /Users UniqueID | /usr/bin/grep  "$_kMDItemOwnerUserID" | /usr/bin/awk  '{ print $1 }')
+	kMDItemLastUsedDate=$(/usr/bin/mdls -name kMDItemLastUsedDate "$FILEPATH" | /usr/bin/sed -e 's/.*= //g' | sed 's/(null)//g')
+	kMDItemUseCount=$(/usr/bin/mdls -name kMDItemUseCount "$FILEPATH" | /usr/bin/sed -e 's/.*= //g' | sed 's/(null)//g')
+	Quarantine=$(/usr/bin/xattr -p com.apple.quarantine "$FILEPATH" 2> /dev/null)
+	QuarantineFlag=$(echo $Quarantine | /usr/bin/awk -F";" '{ print $1 }')
+	if [[ ! -z "$Quarantine" ]]; then
+		Timestamp=$(echo $Quarantine | /usr/bin/awk -F";" '{ print $2 }')
+		EpochTimestamp=$(echo $((0x$Timestamp)))
+		QuarantineTimestamp=$(date -r $EpochTimestamp '+%F %H:%M:%S')
+	fi
+	Origin=$(echo $Quarantine | /usr/bin/awk -F";" '{ print $3 }')
+	FileIdentifier=$(echo $Quarantine | /usr/bin/awk -F";" '{ print $4 }')
+	echo \"$kMDItemDateAdded\",\"$FileName\",\"$FILEPATH\",\"$kMDItemKind\",\"$MD5\",\"$SHA1\",\"$SHA256\",\"$kMDItemWhereFroms\",\"$_kMDItemOwnerUserID\",\"$UserName\",\"$kMDItemLastUsedDate\",\"$kMDItemUseCount\",\"$QuarantineFlag\",\"$QuarantineTimestamp\",\"$Origin\",\"$FileIdentifier\" >> "$OUTPUT_FOLDER/kMDItemWhereFroms.csv"
+done < "$OUTPUT/Spotlight/Searches/kMDItemWhereFroms.txt"
+
+# Stats
+END_SPOTLIGHT=$(/bin/date +%s)
+ELAPSED_TIME_SPOTLIGHT=$(($END_SPOTLIGHT - $START_SPOTLIGHT))
+echo "Spotlight Database Collection: $(($ELAPSED_TIME_SPOTLIGHT/60)) min $(($ELAPSED_TIME_SPOTLIGHT%60)) sec" >> "$OUTPUT"/Stats.txt
 
 }
 
@@ -987,6 +1230,7 @@ case $1 in
 	Header
 	Check_Admin
 	Output
+	BasicInfo
 	BTM_Dump
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
@@ -1044,6 +1288,17 @@ case $1 in
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
 	;;
+	-m|--metadata)
+	{
+	Header
+	Check_Admin
+	Check_FDA
+	Output
+	BasicInfo
+	Spotlight
+	Footer
+	} 2>&1 | /usr/bin/tee screenlog-draft.txt
+	;;
 	-s|--sysdiagnose)
 	{
 	Header
@@ -1067,6 +1322,7 @@ case $1 in
 	KnockKnock
 	UnifiedLogs
 	Sysdiagnose
+	Spotlight
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
 	;;
