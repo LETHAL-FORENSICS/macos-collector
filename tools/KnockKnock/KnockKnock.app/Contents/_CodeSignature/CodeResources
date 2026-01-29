@@ -10,59 +10,63 @@
 		</data>
 		<key>Resources/Assets.car</key>
 		<data>
-		EvjfVxtjBbpZUYz1l5J066qneGY=
+		KoTfxCOfpwHKGs6Pemw1Q1XXwRc=
 		</data>
 		<key>Resources/Base.lproj/AboutWindow.nib</key>
 		<data>
-		KrnNiqvD+r9UptcuHDbCl/jSTWE=
+		ji97RClQKkQTaNo4vYQCDanKG9Y=
 		</data>
 		<key>Resources/Base.lproj/DiffWindow.nib</key>
 		<data>
-		zaJLEZYIcQTqymmpIluDBm/cJjU=
+		je4fGesgk/FGswv3i0ArnALMlZ4=
 		</data>
 		<key>Resources/Base.lproj/ExtensionInfoWindow.nib</key>
 		<data>
-		flEwKTUajTLntQGH73QAu00Fkuo=
+		NUUjMdIQkL6fOEnfRSFuSptgKfU=
 		</data>
 		<key>Resources/Base.lproj/FileInfoWindow.nib</key>
 		<data>
-		jgEcXYgE00NLTlOSw7BLVGPl9Dk=
+		D0VPrqVenFWNzWnCEjD608WEXq4=
 		</data>
 		<key>Resources/Base.lproj/MainMenu.nib/keyedobjects-101500.nib</key>
 		<data>
-		qptiYUQx5Uxw85qhKe9qEhUwLIk=
+		jQnbiToPsUhh0JiqqfGjxSKA2qg=
 		</data>
 		<key>Resources/Base.lproj/MainMenu.nib/keyedobjects-110000.nib</key>
 		<data>
-		5d8yI1GR8TZrN6otLDGjiX1xqr0=
+		0+iKfAlfw4ZhpwZb4BdA6Fsq2h0=
 		</data>
 		<key>Resources/Base.lproj/PlistWindow.nib</key>
 		<data>
-		luma+d+nsSO9nR7S5h0llodppPM=
+		MQ451R0MgP0+9exM/ckwFEujr0M=
 		</data>
 		<key>Resources/Base.lproj/PrefsWindow.nib</key>
 		<data>
-		TMByTbCtABRWR8e+kmo3C+Ks9lM=
+		7l9xpeq/jrTEs+NkqIe2BEZO7W0=
 		</data>
 		<key>Resources/Base.lproj/ResultsWindow.nib</key>
 		<data>
-		w1VjNGTIza1OfPhdtm1FnAWXO3g=
+		doRaH8htjHgaXOUcqU/+3mYXf/c=
 		</data>
 		<key>Resources/Base.lproj/UnknownItems.nib/keyedobjects-101500.nib</key>
 		<data>
-		Um4QSMqj7fHVASWtxbqQmQZKkXk=
+		5sxnFC/pqWfpUCuomnfBReQEXw8=
 		</data>
 		<key>Resources/Base.lproj/UnknownItems.nib/keyedobjects-110000.nib</key>
 		<data>
-		tf2IQ3Oe4tGp0WHD3muQRA0q+FU=
+		lL/HewP9svzU6skqhMgZNklBCns=
 		</data>
 		<key>Resources/Base.lproj/UpdateWindow.nib</key>
 		<data>
-		z7lLYPn8IqRKi51GfDgW9oMwhd4=
+		Pu6koHvfSyi/EXFSfHDYMh2zLbw=
 		</data>
 		<key>Resources/Base.lproj/VTInfoWindow.nib</key>
 		<data>
-		vEzaKt0yWsL8rF05t2Xb6UwnvG0=
+		PGi4dN4tQQMo3hAJ2McgGCfbS7k=
+		</data>
+		<key>Resources/Base.lproj/Welcome.nib</key>
+		<data>
+		kG2KUGeJNIzVnTCFb3W2RQV8OpU=
 		</data>
 		<key>Resources/authorizationIcon.png</key>
 		<data>
@@ -140,7 +144,7 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			BHaJRlNUxeiSjTMHYDLJG1Nfgf8=
+			UgDkqFiUBNb9dZypiwD20xlqemY=
 			</data>
 			<key>optional</key>
 			<true/>
@@ -149,7 +153,7 @@
 		<dict>
 			<key>hash</key>
 			<data>
-			NhBWZGOP378dCYWRrO0+4u2WBUY=
+			ywq2Kq2j1aZlo+B0BEDx8h1xKMA=
 			</data>
 			<key>optional</key>
 			<true/>
@@ -274,7 +278,7 @@
 		</data>
 		<key>Resources/patrons.txt</key>
 		<data>
-		siTOMLluK6TECMXOTmmm9VtbYk8=
+		FH68eruEmOZmDmTj+v8fNVZHPVs=
 		</data>
 		<key>Resources/periodicIcon.png</key>
 		<data>
@@ -303,6 +307,10 @@
 		<key>Resources/settingsOver.png</key>
 		<data>
 		hyZHyzfd0+zIv+MgVDRZA38+wP8=
+		</data>
+		<key>Resources/shellConfigIcon.png</key>
+		<data>
+		6aooRpBCN09gT23JH4RheRhBaZg=
 		</data>
 		<key>Resources/show.png</key>
 		<data>
@@ -394,7 +402,7 @@
 		</data>
 		<key>Resources/whitelistedFiles.json</key>
 		<data>
-		9eI/+doVcDRUdyr6R0GL92jeXWk=
+		fMVjzViNto2KzH8yaUwNUQn9ifo=
 		</data>
 		<key>Resources/whitelistedKexts.json</key>
 		<data>
@@ -414,98 +422,105 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			BQlWGcQU08lqMGVHFICGb23u7w8lQenScYkL/Qke+gQ=
+			3/b8ojHjcyovknB+ALERooADV+ZCXU36GFQiFiPGHBM=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/AboutWindow.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			X06Z+L/RPfG5bmCjhVvVbKjPR+r3BL1KjkS3RC3Dw+w=
+			pgTWL7zKuvGrJ+RsyY2mFblid2ZRSkVdO/mMghcOFN8=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/DiffWindow.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			NYDjvPQbRknqd3acS7r3q3CE57NcgrVXhOlPZidBSP4=
+			ZCExr298kpUkTsE8z1Jax1015zCdeGgudXOS0XjJRmQ=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/ExtensionInfoWindow.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			4u1lwGhu36jRymNoj+F9uJ9oIsfa/FD8GNY0l94K8vE=
+			x9Vx4a+BZuJTdj+qMjonA9maDCezW+lBss0thiFecec=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/FileInfoWindow.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			s7Nfwo5ly6dtMdH4GQxBt4q4g0fxxwvuxHVMcLCNw34=
+			6I9NkqnPGaymlqoijJqBMBoFj/vjsJA6/EP9YdzX4H4=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/MainMenu.nib/keyedobjects-101500.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			h/YMt7crtdrRWdWNoz8btxOcab+HLmXQNePql3FMRdc=
+			Fv+BwCap9Hh1glcPdUcBs8nuGTS6C4cTgqil0IlZGXg=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/MainMenu.nib/keyedobjects-110000.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			+llIxX3pXm4buLBikC81SWW0ERbj0MCxURznpoZ17CU=
+			JsG0zVzXO5grjx6Aw+jX1265S024Kr+scfU1srd7syQ=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/PlistWindow.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			XmSZXWnd2pPONIl3wwDl34kl/mL1i9Jt3+w0zi3T4bA=
+			w/aVCbdOTC5igYxq42ht7KhWzoe59/Fl3O6eI5HBnPs=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/PrefsWindow.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			eIMtcQqminBe+YnqAFzydEADf2V3os/XJJbR6u/eyzo=
+			/gifZrlk8AO6WBhi64Owy5t/fsMbEeq4ywk2uRPwA2A=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/ResultsWindow.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			VKHRcPN4uTs7yFqsQ660irKLOevylHaqPlBcBIvp/Ic=
+			c+RRTLh2qptId7s+RoPekuxaEq79BRT9OCMTVPspDec=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/UnknownItems.nib/keyedobjects-101500.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			q5c+W5BNxcZzlZ4F1ulnlnuovvrgIo47bDk3ytijMl8=
+			QdgiQioREZ5E9N409f/W6MQK/Z64kKtMWgtUExl5aNI=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/UnknownItems.nib/keyedobjects-110000.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			vSNiYt1DD59K65xAVmuiFMNufK4ozZngKqSDV43MfqI=
+			dXFsiHkmwy72IAADlGoA5m7RHLf7/p7KLFalSRnK6hE=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/UpdateWindow.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			gt04r209jt6WDOjKEuO3Rp1+QSD2Q/4WNd7ufEAqZ+4=
+			xy8DxDFiOIJb2U8Ow6226mlLZ+x9sS4Rxvjim+ohX60=
 			</data>
 		</dict>
 		<key>Resources/Base.lproj/VTInfoWindow.nib</key>
 		<dict>
 			<key>hash2</key>
 			<data>
-			DgOwY3lo8POM+WNtx/KA0SfXPnYnMuPPKgvCHL5fLdI=
+			aFMtwpbrLHa7HsOUD4p2SRKbTmSIxmxN0XG/j/Gyq1k=
+			</data>
+		</dict>
+		<key>Resources/Base.lproj/Welcome.nib</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			GX11LkudNXHgiuTgT7FCoEJtApAszEf9hdzf+/oxFc8=
 			</data>
 		</dict>
 		<key>Resources/authorizationIcon.png</key>
@@ -611,7 +626,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			gLgiZ48Dg4KJMIKxVR+W0p9NBtOM7MYqHwVnJpiAOvc=
+			iWfoh0WAbQtNFc809EITvqtRLD0H6RmITxiGtCNWOOc=
 			</data>
 			<key>optional</key>
 			<true/>
@@ -620,7 +635,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			UKxaEYx9EwJJ1eR39aapMuLO+lVsuytdUu0Jtir+Vy0=
+			Fg6Zt3FSNLYqQRH7SV6hMyxpS+bQ1nU2CCw4JkkEtAE=
 			</data>
 			<key>optional</key>
 			<true/>
@@ -795,7 +810,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			Js2a8xIrCJeM4fQo/S2HNWuI8lcg9mPIMXULbBWvmNo=
+			7eQSy9dnDsvpk1dPlGMxPj4+ehHqkp4uTBItok9lkn0=
 			</data>
 		</dict>
 		<key>Resources/periodicIcon.png</key>
@@ -845,6 +860,13 @@
 			<key>hash2</key>
 			<data>
 			/Zp0wDLIf/qh9+rFfaKjeQdwbeIquaLfCpUvsHa3wdg=
+			</data>
+		</dict>
+		<key>Resources/shellConfigIcon.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			RuisTbTZoNGq2mDSjLv465LRrQzKYyasIWRvXxUGAlo=
 			</data>
 		</dict>
 		<key>Resources/show.png</key>
@@ -1005,7 +1027,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			CR+EB36a5QgWoqB81AyLgcUPAikC379tOycs5s7ai6k=
+			CzD5f/sNFO7ub0e7jNU5pXMkemO23ilBb24g3D4SvPI=
 			</data>
 		</dict>
 		<key>Resources/whitelistedKexts.json</key>

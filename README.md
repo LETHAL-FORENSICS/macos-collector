@@ -11,6 +11,9 @@ Download the latest version of **macos-collector** from the [Releases](https://g
 > [!NOTE]
 > macos-collector includes all external tools by default.  
 
+> [!TIP]
+> macos-collector will write the output directly to the current working directory. It is recommended to run the tool from a remote location or external device (such as a USB flash drive) to reduce writing to the actual disk on the target endpoint.  
+
 > [!IMPORTANT]
 > Aftermath needs to be root, as well as have full disk access (FDA) in order to run. FDA can be granted to the Terminal application in which it is running. 
 > 
@@ -43,7 +46,7 @@ sudo bash macos-collector.sh --triage
 
 </br>
 
-![Help-Message](https://github.com/user-attachments/assets/17af2a5f-5388-4092-8a5a-7661bae77057)  
+![Help-Message](https://github.com/user-attachments/assets/3029ac56-5f6c-4c24-ae05-3d29f2a165b0)  
 **Fig 1:** Help Message  
 
 ![Aftermath-Collection](https://github.com/user-attachments/assets/27d73f2d-c139-446d-b1b6-20f0d4a52fb8)  
@@ -73,6 +76,9 @@ sudo bash macos-collector.sh --triage
 ![Spotlight](https://github.com/user-attachments/assets/17dddf9f-819d-4c6b-a7ea-417ec469d0b8)  
 **Fig 10:** Spotlight Database File Collection (incl. Live Searches)  
 
+![System-Info](https://github.com/user-attachments/assets/b98703af-06f2-48e2-b1d9-ab816e1353bd)  
+**Fig 11:** System Information Collection  
+
 ## Dependencies
 Aftermath v2.3.0 (2025-09-24)  
 MD5: A0668EB91650513F40CE8753A277E0E0  
@@ -80,10 +86,10 @@ SHA1: 782077A3FE5351C72157142C437EA5D20BEF00E9
 SHA256: A58489ACC3E3BB7D5BC70B66DFF5897CBF93BFE38E66C119C4FF1013559D912A  
 https://github.com/jamf/aftermath  
 
-KnockKnock v3.1.0 (2025-01-05)  
-MD5: 50CD991737AEA18BE03BEE7A19AB74A1  
-SHA1: C23481B1F8C51A3A79651D5F26BDEDFF9DBA65E7  
-SHA256: E77944E6C09A65A6616646504290AFB1624AD2DAAB06BECBC86398998514BECC  
+KnockKnock v4.0.3 (2025-12-18)  
+MD5: 91582848022442C8A6D71ED28A10A11B  
+SHA1: FDAEB856E44563E7C543F775A238D590A3A4B2EC  
+SHA256: A7836AF427187D02511170606232E4509C3A41351F5BBC3BAFAFE2F0227CC2DE  
 https://objective-see.com/products/knockknock.html  
 
 ## License

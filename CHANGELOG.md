@@ -2,6 +2,16 @@
 
 All changes to macos-collector will be documented in this file. 
 
+## [1.4.0] - 2026-01-29
+### Added
+- System Information Collection
+- Recent Items Collection
+- KnockKnock v4.0.3 (Optional: VirusTotal Lookup)
+- Spotlight Indexing Status (Data Volume)
+
+## Fixed
+- Minor fixes and improvements
+
 ## [1.3.0] - 2025-12-07
 ### Added
 - Spotlight Database File Collection (incl. Live Searches)
