@@ -79,6 +79,9 @@ sudo bash macos-collector.sh --triage
 ![System-Info](https://github.com/user-attachments/assets/b98703af-06f2-48e2-b1d9-ab816e1353bd)  
 **Fig 11:** System Information Collection  
 
+![Recent-Items](https://github.com/user-attachments/assets/81d8f279-68e0-4af5-ae18-4c06dddec8e7)  
+**Fig 12:** Recent Items Collection  
+
 ## Dependencies
 Aftermath v2.3.0 (2025-09-24)  
 MD5: A0668EB91650513F40CE8753A277E0E0  
