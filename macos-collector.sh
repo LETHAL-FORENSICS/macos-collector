@@ -2,11 +2,11 @@
 #
 # macOS-Collector
 #
-# @author: 		Martin Willing
-# @copyright: 	Copyright (c) 2026 Martin Willing. All rights reserved. Licensed under the MIT license.
-# @contact: 	Any feedback or suggestions are always welcome and much appreciated - mwilling@lethal-forensics.com
-# @url: 		https://lethal-forensics.com/
-# @date: 		2026-01-29
+# @author:      Martin Willing
+# @copyright:   Copyright (c) 2026 Martin Willing. All rights reserved. Licensed under the MIT license.
+# @contact:     Any feedback or suggestions are always welcome and much appreciated - mwilling@lethal-forensics.com
+# @url:         https://lethal-forensics.com/
+# @date:        2026-03-09
 #
 #
 # ██╗     ███████╗████████╗██╗  ██╗ █████╗ ██╗      ███████╗ ██████╗ ██████╗ ███████╗███╗   ██╗███████╗██╗ ██████╗███████╗
@@ -60,14 +60,16 @@
 #
 # Aftermath v2.3.0 (2025-09-24)
 # https://github.com/jamf/aftermath
-# https://github.com/stuartjash/aftermath
 # https://github.com/jamf/jamfprotect/tree/main/soar_playbooks/aftermath_collection
 #
 # KnockKnock v4.0.3 (2025-12-18)
 # https://objective-see.com/products/knockknock.html
 #
+# TrueTree v0.8 (2024-08-23)
+# https://github.com/themittenmac/TrueTree
 #
-# Tested on macOS Tahoe 26.2
+#
+# Tested on macOS Tahoe 26.3.1
 #
 #############################################################
 #############################################################
@@ -75,10 +77,21 @@
 # Declarations
 SCRIPT_DIR=$( /usr/bin/cd "$( /usr/bin/dirname "${BASH_SOURCE[0]}" )" && /bin/pwd )
 TIMESTAMP=$(/bin/date '+%FT%H%M%S') # YYYY-MM-DDThhmmss
+OUTPUT="$SCRIPT_DIR/output/$(/bin/hostname)/$TIMESTAMP-macos-collector"
 
-# Aftermath Binary
+# Archive Passwords
+ARCHIVE_PASSWORD="IncidentResponse"
+PASSWORD="infected" # Quarantine Files
+
+# Aftermath
 AFTERMATH="$SCRIPT_DIR/tools/Aftermath/aftermath"
-FILEHASH="A0668EB91650513F40CE8753A277E0E0"
+FILEHASH="A0668EB91650513F40CE8753A277E0E0" # MD5
+
+# KnockKnock
+KNOCKKNOCK="$SCRIPT_DIR/tools/KnockKnock/KnockKnock.app"
+
+# TrueTree
+TRUETREE="$SCRIPT_DIR/tools/TrueTree/TrueTree"
 
 # VirusTotal API
 # https://www.virustotal.com/#/join-us --> Join the community for free
@@ -102,7 +115,7 @@ echo ""
 ╚══════╝╚══════╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝ ╚═╝      ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═╝  ╚═══╝╚══════╝╚═╝ ╚═════╝╚══════╝
 EOF
 
-echo "$LOGO"
+echo ""
 
 }
 
@@ -123,6 +136,7 @@ echo "-i / --info            Collect System Information"
 echo "-k / --knockknock      Scan Live System w/ KnockKnock (Persistence)"
 echo "-l / --logs            Collect Apple Unified Logs (AUL)"
 echo "-m / --metadata        Collect Spotlight Database (Desktop Search Engine)"
+echo "-p / --processes       Collect Snapshot of Running Processes w/ TrueTree"
 echo "-r / --recentitems     Collect Recent Items (MRU)"
 echo "-s / --sysdiagnose     Collect Sysdiagnose Logs"
 echo "-t / --triage          Collect ALL supported macOS Forensic Artifacts"
@@ -144,6 +158,7 @@ echo "-i / --info            Collect System Information"
 echo "-k / --knockknock      Scan Live System w/ KnockKnock (Persistence)"
 echo "-l / --logs            Collect Apple Unified Logs (AUL)"
 echo "-m / --metadata        Collect Spotlight Database (Desktop Search Engine)"
+echo "-p / --processes       Collect Snapshot of Running Processes w/ TrueTree"
 echo "-r / --recentitems     Collect Recent Items (MRU)"
 echo "-s / --sysdiagnose     Collect Sysdiagnose Logs"
 echo "-t / --triage          Collect ALL supported macOS Forensic Artifacts"
@@ -186,11 +201,11 @@ Check_FDA() {
 #############################################################
 
 Output() {
+
 	# Time Duration
 	START_TIME=$SECONDS
 
 	# Check if output folder exists
-	OUTPUT="$SCRIPT_DIR/output/$(/bin/hostname)/$TIMESTAMP-macos-collector"
 	if [[ -d "$OUTPUT" ]]
 		then
 			/bin/rm -r "$OUTPUT"
@@ -213,7 +228,7 @@ HostName=$(/bin/hostname)
 echo "[Info]  Host Name: $HostName"
 
 # SPHardwareDataType
-SPHardwareDataType=$(/usr/sbin/system_profiler SPHardwareDataType)
+SPHardwareDataType=$(/usr/sbin/system_profiler SPHardwareDataType 2> /dev/null)
 
 # Model Name
 ModelName=$(echo "$SPHardwareDataType" | /usr/bin/grep "Model Name:" | /usr/bin/sed -e 's/.*Model Name: //')
@@ -316,7 +331,7 @@ if [[ -f "$FILE" ]]; then
 	echo "[Info]  MRT Version: $VERSION ($COUNT Signatures)"
 fi
 
-# Built-in macOS Secuirty Tool --> How everything works together
+# Built-in macOS Security Tool --> How everything works together
 # When a file is downloaded via browser or via application (e.g. Safari, Mail, Messages), it is marked with the quarantine flag (com.apple.quarantine).
 # Gatekeeper checks if the file is signed and notarized. If it is not, the user receives a warning before execution.
 # If execution is allowed, XProtect scans the file against its known malware signatures (from XProtect.plist, XProtect.yara, etc.).
@@ -335,25 +350,25 @@ START_SYSTEMINFO=$(/bin/date +%s)
 
 # System Information
 echo "[Info]  Collecting System Information [approx. 5-10 min] ..."
-/bin/mkdir -p "$OUTPUT/SystemInfo/SecurityInfo"
+/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo"
 
 # System Version
 FILE="/System/Library/CoreServices/SystemVersion.plist"
 if [[ -f "$FILE" ]]; then
-	/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemVersion.plist"
-	/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/SystemVersion.txt"
+	/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/SystemVersion.plist"
+	/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/SystemVersion.txt"
 fi
 
 # Gatekeeper Status (System Policy Control)
 GKStatus=$(/usr/sbin/spctl --status)
 
 if [[ $GKStatus = "assessments enabled" ]]; then
-	echo "[Info]  Gatekeeper is active, restricting apps to Apple Store and identified developers." > "$OUTPUT/SystemInfo/SecurityInfo/Gatekeeper_Status.txt"
+	echo "[Info]  Gatekeeper is active, restricting apps to Apple Store and identified developers." > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/Gatekeeper_Status.txt"
 elif [[ $GKStatus = "assessments disabled" ]]; then
-	echo "[ALERT] Gatekeeper is NOT actively blocking apps." > "$OUTPUT/SystemInfo/SecurityInfo/Gatekeeper/Gatekeeper_Status.txt"
+	echo "[ALERT] Gatekeeper is NOT actively blocking apps." > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/Gatekeeper/Gatekeeper_Status.txt"
 	echo -e "\033[91m[ALERT] Gatekeeper is NOT actively blocking apps.\033[0m"
 else
-	echo "$GKStatus" > "$OUTPUT/SystemInfo/SecurityInfo/Gatekeeper/Gatekeeper_Status.txt"
+	echo "$GKStatus" > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/Gatekeeper/Gatekeeper_Status.txt"
 fi
 
 # System Settings > Privacy & Security > Security
@@ -363,8 +378,8 @@ fi
 # 2. App Store & Known Developers
 
 # Gatekeeper Rules
-/bin/mkdir -p "$OUTPUT/SystemInfo/SecurityInfo/Gatekeeper"
-/usr/bin/sudo /usr/sbin/spctl --list > "$OUTPUT/SystemInfo/SecurityInfo/Gatekeeper/Gatekeeper_Rules.txt" 2>&1
+/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/Gatekeeper"
+/usr/bin/sudo /usr/sbin/spctl --list > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/Gatekeeper/Gatekeeper_Rules.txt" 2>&1
 
 # Gatekeeper Database
 GatekeeperDatabase="/Library/Apple/System/Library/CoreServices/XProtect.bundle/Contents/Resources/gk.db"
@@ -373,35 +388,35 @@ if [[ -f "$GatekeeperDatabase" ]]; then
 	# Blocked Team IDs (Developer IDs)
 	BlockedTeams=$(/usr/bin/sqlite3 "$GatekeeperDatabase" .dump | /usr/bin/grep "blocked_teams" | /usr/bin/cut -d "'" -f 2 | /usr/bin/grep -E "^[A-Z0-9]{10}$" | /usr/bin/sort -u)
 	Count=$(echo "$BlockedTeams" | /usr/bin/grep -c ^)
-	echo "$BlockedTeams" > "$OUTPUT/SystemInfo/SecurityInfo/Gatekeeper/GateKeeper_BlockedTeams.txt"
-	echo "[Info]  $Count Blocked Team Identifier found" > "$OUTPUT/SystemInfo/SecurityInfo/Gatekeeper/GateKeeper_BlockedTeams_Count.txt"
+	echo "$BlockedTeams" > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/Gatekeeper/GateKeeper_BlockedTeams.txt"
+	echo "[Info]  $Count Blocked Team Identifier found" > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/Gatekeeper/GateKeeper_BlockedTeams_Count.txt"
 
 	# Blocked CDHashes
 	BlockedHashes=$(/usr/bin/sqlite3 "$GatekeeperDatabase" .dump | /usr/bin/grep "blocked_hashes" | /usr/bin/cut -d "'" -f 2 | /usr/bin/grep -E "^[0-9a-f]{40}$" | /usr/bin/sort -u)
 	Count=$(echo "$BlockedHashes" | /usr/bin/grep -c ^)
-	echo "$BlockedHashes" > "$OUTPUT/SystemInfo/SecurityInfo/Gatekeeper/GateKeeper_BlockedHashes.txt"
-	echo "[Info]  $Count Blocked Hash Value(s) found" > "$OUTPUT/SystemInfo/SecurityInfo/Gatekeeper/GateKeeper_BlockedHashes_Count.txt"
+	echo "$BlockedHashes" > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/Gatekeeper/GateKeeper_BlockedHashes.txt"
+	echo "[Info]  $Count Blocked Hash Value(s) found" > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/Gatekeeper/GateKeeper_BlockedHashes_Count.txt"
 fi
 
 # XProtect Remediator (XPR) - Background Scan Settings
-/bin/mkdir -p "$OUTPUT/SystemInfo/SecurityInfo/XPR"
+/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/XPR"
 
 FILE="/Library/Apple/System/Library/LaunchAgents/com.apple.XProtect.agent.scan.plist"
 if [[ -f "$FILE" ]]; then
-	/bin/cp "$FILE" "$OUTPUT/SystemInfo/SecurityInfo/XPR/com.apple.XProtect.agent.scan.plist"
-	/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/SecurityInfo/XPR/com.apple.XProtect.agent.scan.txt"
+	/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/XPR/com.apple.XProtect.agent.scan.plist"
+	/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/XPR/com.apple.XProtect.agent.scan.txt"
 fi
 
 FILE="/Library/Apple/System/Library/LaunchAgents/com.apple.XProtect.agent.scan.startup.plist"
 if [[ -f "$FILE" ]]; then
-	/bin/cp "$FILE" "$OUTPUT/SystemInfo/SecurityInfo/XPR/com.apple.XProtect.agent.scan.startup.plist"
-	/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/SecurityInfo/XPR/com.apple.XProtect.agent.scan.startup.txt"
+	/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/XPR/com.apple.XProtect.agent.scan.startup.plist"
+	/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/XPR/com.apple.XProtect.agent.scan.startup.txt"
 fi
 
 FILE="/Library/Apple/System/Library/LaunchDaemons/com.apple.XProtect.daemon.scan.plist"
 if [[ -f "$FILE" ]]; then
-	/bin/cp "$FILE" "$OUTPUT/SystemInfo/SecurityInfo/XPR/com.apple.XProtect.daemon.scan.plist"
-	/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/SecurityInfo/XPR/com.apple.XProtect.daemon.scan.txt"
+	/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/XPR/com.apple.XProtect.daemon.scan.plist"
+	/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/XPR/com.apple.XProtect.daemon.scan.txt"
 fi
 
 # Fast Scan     --> Interval: 21600 (6 hours)  --> AllowBattery: true
@@ -409,15 +424,16 @@ fi
 # Slow Scan     --> Interval: 604800 (7 days)  --> AllowBattery: false
 
 # System Integrity Protection (SIP)
+# Note: Protected can be identified by looking for the com.apple.rootless extended attribute on a file or directory (xattr -l /System).
 SIP=$(/usr/bin/csrutil status)
 
 if [[ $SIP = "System Integrity Protection status: enabled." ]]; then
-	echo "[Info]  System Integrity Protection (SIP) is on." > "$OUTPUT/SystemInfo/SecurityInfo/SIP_Status.txt"
+	echo "[Info]  System Integrity Protection (SIP) is on." > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/SIP_Status.txt"
 elif [[ $SIP = "System Integrity Protection status: disabled." ]]; then	
-	echo "[Info]  System Integrity Protection (SIP) is off." > "$OUTPUT/SystemInfo/SecurityInfo/SIP_Status.txt"
+	echo "[Info]  System Integrity Protection (SIP) is off." > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/SIP_Status.txt"
 	echo -e "\033[91m[ALERT] System Integrity Protection (SIP) is off.\033[0m"
 else
-	echo "$SIP" > "$OUTPUT/SystemInfo/SecurityInfo/SIP_Status.txt"
+	echo "$SIP" > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/SIP_Status.txt"
 fi
 
 # Install Date(s)
@@ -426,39 +442,39 @@ fi
 # Note: Time Zone = Cupertino, California --> PDT (Pacific Daylight Time) --> UTC -7
 FILE="/private/var/db/.AppleSetupDone"
 if [[ -f "$FILE" ]]; then
-	/usr/bin/stat -x "$FILE" > "$OUTPUT/SystemInfo/Original-InstallDate.txt"
+	/usr/bin/stat -x "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/Original-InstallDate.txt"
 fi
 
 # install.log (System Local Time)
 FILE="/var/log/install.log"
 if [[ -f "$FILE" ]]; then
-	/bin/cp "$FILE" "$OUTPUT/SystemInfo/install.log"
+	/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/install.log"
 fi
 
 # Timezone Information
 Timezone=$(/usr/bin/sudo /usr/sbin/systemsetup -gettimezone | /usr/bin/sed -e 's/Time Zone: //g')
-echo "[Info]  Timezone Information: $Timezone" > "$OUTPUT/SystemInfo/Timezone.txt"
+echo "[Info]  Timezone Information: $Timezone" > "$OUTPUT/SystemInfo/SystemInfo_Data/Timezone.txt"
 
 # Preferred Languages
 LoggedInUser=$(/usr/bin/stat -f %Su /dev/console)
 AppleLanguages=$(/usr/bin/sudo -u $LoggedInUser defaults read -g AppleLanguages)
-echo "$AppleLanguages" | /usr/bin/grep -o '"[^"]\+"' | /usr/bin/tr -d '"' | /usr/bin/sort > "$OUTPUT"/SystemInfo/PreferredLanguages.txt
+echo "$AppleLanguages" | /usr/bin/grep -o '"[^"]\+"' | /usr/bin/tr -d '"' | /usr/bin/sort > "$OUTPUT"/SystemInfo/SystemInfo_Data/PreferredLanguages.txt
 
 # System Language
-/usr/libexec/PlistBuddy -c "Print AppleLanguages:0" "/Library/Preferences/.GlobalPreferences.plist" > "$OUTPUT"/SystemInfo/SystemLanguage.txt
+/usr/libexec/PlistBuddy -c "Print AppleLanguages:0" "/Library/Preferences/.GlobalPreferences.plist" > "$OUTPUT"/SystemInfo/SystemInfo_Data/SystemLanguage.txt
 
 # Default Browser
 for UserName in $(/usr/bin/dscl . list /Users UniqueID | /usr/bin/awk '$2 > 500 {print $1}')
 do
-	/usr/bin/defaults read "/Users/$UserName/Library/Preferences/com.apple.LaunchServices/com.apple.LaunchServices.secure.plist" | /usr/bin/awk -F'"' '/http;/{print window[(NR)-1]}{window[NR]=$2}' > "$OUTPUT/SystemInfo/DefaultBrowser_$UserName.txt"
+	/usr/bin/defaults read "/Users/$UserName/Library/Preferences/com.apple.LaunchServices/com.apple.LaunchServices.secure.plist" | /usr/bin/awk -F'"' '/http;/{print window[(NR)-1]}{window[NR]=$2}' > "$OUTPUT/SystemInfo/SystemInfo_Data/DefaultBrowser_$UserName.txt"
 done
 
 # Firmware Password (Intel)
 # Note: Apple Silicon Macs don't support the old firmwarepasswd utility (Firmware Password Utility).
 PLATFORM=$(/usr/bin/uname -m)
 if [[ $PLATFORM = "x86_64" ]]; then
-	FirmwarePassword=$(/usr/bin/sudo /usr/sbin/firmwarepasswd -check 2 > "$OUTPUT/SystemInfo/Firmware-Password.txt")
-	echo $FirmwarePassword >> "$OUTPUT"/SystemInfo/Firmware-Password.txt
+	FirmwarePassword=$(/usr/bin/sudo /usr/sbin/firmwarepasswd -check 2 > "$OUTPUT/SystemInfo/SystemInfo_Data/Firmware-Password.txt")
+	echo $FirmwarePassword >> "$OUTPUT"/SystemInfo/SystemInfo_Data/Firmware-Password.txt
 	if echo "$FirmwarePassword" | /usr/bin/grep -q "Password Enabled: Yes";then
 		echo "[Info]  Firmware Password Enabled: Yes"
 	else
@@ -472,31 +488,31 @@ PLATFORM=$(/usr/bin/uname -m)
 if [[ $PLATFORM = "x86_64" ]]; then
 	SPiBridgeDataType=$(/usr/sbin/system_profiler SPiBridgeDataType)
 	if echo "$SPiBridgeDataType" | /usr/bin/grep -q "Apple T2";then
-		echo "[Info]  Security Chip: Apple T2" > "$OUTPUT"/SystemInfo/T2-Security-Chip.txt
+		echo "[Info]  Security Chip: Apple T2" > "$OUTPUT/SystemInfo/SystemInfo_Data/T2-Security-Chip.txt"
 	fi
 fi
 
 # Software Update Tool (incl. Security Updates)
-/usr/sbin/softwareupdate --list --include-config-data > "$OUTPUT/SystemInfo/softwareupdate_security.txt" 2>&1
+/usr/sbin/softwareupdate --list --include-config-data > "$OUTPUT/SystemInfo/SystemInfo_Data/softwareupdate_security.txt" 2>&1
 
 # AirDrop Status (AirDrop Interface --> Apple Wireless Direct Link)
 # Note: AirDrop lets you share instantly with people nearby. You can be discoverable in AirDrop to receive from everyone or only people in your contacts.
 AirDrop=$(/usr/bin/sudo /sbin/ifconfig awdl0 | /usr/bin/awk '/status/{print $2}')
 
 if [[ $AirDrop = "active" ]]; then
-	echo "[Info]  AirDrop is ON." > "$OUTPUT/SystemInfo/AirDrop_Status.txt"
+	echo "[Info]  AirDrop is ON." > "$OUTPUT/SystemInfo/SystemInfo_Data/AirDrop_Status.txt"
 elif [[ $AirDrop = "inactive" ]]; then
-	echo "[Info]  AirDrop is OFF." > "$OUTPUT/SystemInfo/AirDrop_Status.txt"
+	echo "[Info]  AirDrop is OFF." > "$OUTPUT/SystemInfo/SystemInfo_Data/AirDrop_Status.txt"
 else
 	AirDrop=$(/usr/bin/sudo /sbin/ifconfig awdl0)
-	echo "$AirDrop" > "$OUTPUT/SystemInfo/AirDrop_Status.txt"
+	echo "$AirDrop" > "$OUTPUT/SystemInfo/SystemInfo_Data/AirDrop_Status.txt"
 fi
 
 # AirDrop Preferences
 FILE="/Library/Preferences/SystemConfiguration/com.apple.airport.preferences.plist"
 if [[ -f "$FILE" ]]; then
-	/bin/cp "$FILE" "$OUTPUT/SystemInfo/com.apple.airport.preferences.plist"
-	/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/com.apple.airport.preferences.txt" 
+	/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/com.apple.airport.preferences.plist"
+	/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/com.apple.airport.preferences.txt" 
 fi
 
 # a) Finder > AirDrop > Allow me to be discovered by: ...
@@ -511,12 +527,12 @@ fi
 
 # Bluetooth Status
 SPBluetoothDataType=$(/usr/sbin/system_profiler SPBluetoothDataType)
-echo "$SPBluetoothDataType" > "$OUTPUT/SystemInfo/Bluetooth.txt"
+echo "$SPBluetoothDataType" > "$OUTPUT/SystemInfo/SystemInfo_Data/Bluetooth.txt"
 
 if echo $SPBluetoothDataType | /usr/bin/grep -A 2 "Bluetooth Controller:" | /usr/bin/grep -q "State: On"; then
-	echo "[Info]  Bluetooth is ON." > "$OUTPUT/SystemInfo/Bluetooth_Status.txt"
+	echo "[Info]  Bluetooth is ON." > "$OUTPUT/SystemInfo/SystemInfo_Data/Bluetooth_Status.txt"
 else
-	echo "[Info]  Bluetooth is OFF." > "$OUTPUT/SystemInfo/Bluetooth_Status.txt"
+	echo "[Info]  Bluetooth is OFF." > "$OUTPUT/SystemInfo/SystemInfo_Data/Bluetooth_Status.txt"
 fi
 
 # System Settings > Bluetooth
@@ -531,17 +547,20 @@ fi
 
 # Wi-Fi Status
 SPAirPortDataType=$(/usr/sbin/system_profiler SPAirPortDataType)
-echo "$SPAirPortDataType" > "$OUTPUT/SystemInfo/SPAirPortDataType.txt"
+echo "$SPAirPortDataType" > "$OUTPUT/SystemInfo/SystemInfo_Data/SPAirPortDataType.txt"
 
 if echo $SPAirPortDataType | /usr/bin/grep -q "State: Connected"; then
-	echo "[Info]  Wi-Fi is ON." > "$OUTPUT/SystemInfo/Wi-Fi_Status.txt" # Status: Connected
+	echo "[Info]  Wi-Fi is ON." > "$OUTPUT/SystemInfo/SystemInfo_Data/Wi-Fi_Status.txt" # Status: Connected
 else
-	echo "[Info]  Wi-Fi is OFF." > "$OUTPUT/SystemInfo/Wi-Fi_Status.txt" # Status: Off
+	echo "[Info]  Wi-Fi is OFF." > "$OUTPUT/SystemInfo/SystemInfo_Data/Wi-Fi_Status.txt" # Status: Off
 fi
 
 # Wireless Diagnostics
 WirelessDiagnostics=$(/usr/bin/sudo /usr/bin/wdutil info)
-echo "$WirelessDiagnostics" > "$OUTPUT/SystemInfo/Wireless-Diagnostics.txt"
+echo "$WirelessDiagnostics" > "$OUTPUT/SystemInfo/SystemInfo_Data/Wireless-Diagnostics.txt"
+
+# Application Layer Firewall (ALF)
+/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/Firewall"
 
 # Firewall Status
 Firewall=$(/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate)
@@ -551,83 +570,215 @@ Firewall=$(/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate)
 
 if echo "$Firewall" | grep -q "Firewall is enabled."; then # The firewall is turned on and set up to prevent unauthorized applications, programs, and services from accepting incoming connections.
 	StealthMode=$(/usr/libexec/ApplicationFirewall/socketfilterfw --getstealthmode)
-	echo "[Info]  $Firewall" > "$OUTPUT/SystemInfo/Firewall_Status.txt"
-	echo "[Info]  $StealthMode" >> "$OUTPUT/SystemInfo/Firewall_Status.txt"
+	echo "[Info]  $Firewall" > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/Firewall/Firewall_Status.txt"
+	echo "[Info]  $StealthMode" >> "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/Firewall/Firewall_Status.txt"
 else
 	echo -e "\033[91m[ALERT] This computer's firewall is currently turned off. All incoming connections to this computer are allowed.\033[0m"
 fi
 
 # System Settings > Network > Firewall
 
+# Allowed Applications
+AddedApps=$(/usr/bin/sudo /usr/libexec/ApplicationFirewall/socketfilterfw --listapps)
+echo "$AddedApps" > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/Firewall/Allowed-Applications.txt"
+
+# Application Layer Firewall Configuration
+FILE="/Library/Preferences/com.apple.alf.plist"
+if [[ -f "$FILE" ]]; then
+	/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/Firewall/com.apple.alf.plist"
+	/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/Firewall/com.apple.alf.txt" 
+fi
+
 # Screen Sharing Preferences
 ScreenSharing=$(/usr/bin/defaults read /System/Library/LaunchDaemons/com.apple.screensharing.plist)
-echo "$ScreenSharing" > "$OUTPUT/SystemInfo/Screen-Sharing-Preferences.txt"
+echo "$ScreenSharing" > "$OUTPUT/SystemInfo/SystemInfo_Data/Screen-Sharing-Preferences.txt"
 
 # Screen Sharing Daemon
 ScreenSharingDaemon=$(/usr/bin/sudo /bin/launchctl list com.apple.screensharing 2>&1)
-echo "$ScreenSharingDaemon" > "$OUTPUT/SystemInfo/Screen-Sharing-Daemon.txt"
+echo "$ScreenSharingDaemon" > "$OUTPUT/SystemInfo/SystemInfo_Data/Screen-Sharing-Daemon.txt"
 
 # Network File Shares (NFS)
-/sbin/nfsd status > "$OUTPUT/SystemInfo/Network-File-Shares.txt" 2>&1
+/sbin/nfsd status > "$OUTPUT/SystemInfo/SystemInfo_Data/Network-File-Shares.txt" 2>&1
 
 # List Disks (including internal and external disks, whole disks and partitions, and various kinds of virtual or offline disks)
-/bin/mkdir -p "$OUTPUT/SystemInfo/DiskInfo"
+/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/DiskInfo"
 Disks=$(/usr/sbin/diskutil list 2>&1)
-echo "$Disks" > "$OUTPUT/SystemInfo/DiskInfo/Disks.txt"
+echo "$Disks" > "$OUTPUT/SystemInfo/SystemInfo_Data/DiskInfo/Disks.txt"
+
+# Data Volume
+/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/DiskInfo/DataVolume"
+
+# Data Volume - Name
+VolumeName=$(/usr/sbin/diskutil info / | /usr/bin/grep "Volume Name" | /usr/bin/cut -c 31-9999)
+echo "$VolumeName" > "$OUTPUT/SystemInfo/SystemInfo_Data/DiskInfo/DataVolume/VolumeName.txt"
+
+# Data Volume - Identifier
+Data_Volume_Id=$(/usr/sbin/diskutil list internal | /usr/bin/awk '/APFS Volume Data/{print $NF}')
+echo "$Data_Volume_Id" > "$OUTPUT/SystemInfo/SystemInfo_Data/DiskInfo/DataVolume/Identifier.txt"
+
+# Data Volume - Disk Space (Bytes)
+Data_Volume_Total=$(/usr/sbin/diskutil info $Data_Volume_Id | /usr/bin/awk -F'[(|B]' '/Container Total Space:/{print $3}')
+Data_Volume_Free=$(/usr/sbin/diskutil info $Data_Volume_Id | /usr/bin/awk -F'[(|B]' '/Container Free Space:/{print $3}')
+Data_Volume_Used=$(/usr/sbin/diskutil info $Data_Volume_Id | /usr/bin/awk -F'[(|B]' '/Volume Used Space:/{print $3}')
+
+Data_Volume_Free_Percentage=$(/bin/echo "scale=3; 100 - $Data_Volume_Used / $Data_Volume_Total * 100" | /usr/bin/bc)
+FREEPERCENT=$(echo "$(printf "%.1f\\n" ${Data_Volume_Free_Percentage})%")
+
+Data_Volume_Used_Percentage=$(/bin/echo "scale=3; 100 - $Data_Volume_Free / $Data_Volume_Total * 100" | /usr/bin/bc)
+USEDPERCENT=$(echo "$(printf "%.1f\\n" ${Data_Volume_Used_Percentage})%")
+
+# Data Volume - Total Space
+TOTALSPACE=$(echo "$Data_Volume_Total" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
+echo "$TOTALSPACE" > "$OUTPUT/SystemInfo/SystemInfo_Data/DiskInfo/DataVolume/TotalSpace.txt"
+
+# Data Volume - Free Space
+FREESPACE=$(echo "$Data_Volume_Free" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
+echo "$FREESPACE ($FREEPERCENT)" > "$OUTPUT/SystemInfo/SystemInfo_Data/DiskInfo/DataVolume/FreeSpace.txt"
+
+# Data Volume - Used Space
+USEDSPACE=$(echo "$Data_Volume_Used" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
+echo "$USEDSPACE ($USEDPERCENT)" > "$OUTPUT/SystemInfo/SystemInfo_Data/DiskInfo/DataVolume/UsedSpace.txt"
 
 # Show status of all current APFS Containers
 APFS_Containers=$(/usr/sbin/diskutil apfs list 2>&1)
-echo "$APFS_Containers" > "$OUTPUT/SystemInfo/DiskInfo/APFS_Containers.txt"
+echo "$APFS_Containers" > "$OUTPUT/SystemInfo/SystemInfo_Data/DiskInfo/APFS_Containers.txt"
 
 # Get information on a specific disk or partition (Data Volume)
 DiskInfo=$(/usr/sbin/diskutil info / 2>&1)
-echo "$DiskInfo" > "$OUTPUT"/SystemInfo/DiskInfo/diskutil-info.txt
+echo "$DiskInfo" > "$OUTPUT/SystemInfo/SystemInfo_Data/DiskInfo/diskutil-info.txt"
 
 # APFS Snapshots
-/usr/sbin/diskutil apfs listsnapshots / > "$OUTPUT/SystemInfo/DiskInfo/diskutil-apfs-listsnapshots.txt"
-/usr/bin/tmutil listlocalsnapshots / > "$OUTPUT/SystemInfo/DiskInfo/tmutil-listlocalsnapshots.txt"
-/usr/bin/tmutil listlocalsnapshotdates / > "$OUTPUT/SystemInfo/DiskInfo/tmutil-listlocalsnapshotdates.txt"
-/usr/bin/tmutil version > "$OUTPUT/SystemInfo/DiskInfo/tmutil-version.txt"
+/usr/sbin/diskutil apfs listsnapshots / > "$OUTPUT/SystemInfo/SystemInfo_Data/DiskInfo/diskutil-apfs-listsnapshots.txt"
+/usr/bin/tmutil listlocalsnapshots / > "$OUTPUT/SystemInfo/SystemInfo_Data/DiskInfo/tmutil-listlocalsnapshots.txt"
+/usr/bin/tmutil listlocalsnapshotdates / > "$OUTPUT/SystemInfo/SystemInfo_Data/DiskInfo/tmutil-listlocalsnapshotdates.txt"
+/usr/bin/tmutil version > "$OUTPUT/SystemInfo/SystemInfo_Data/DiskInfo/tmutil-version.txt"
 
 # List of currently mounted file systems
-/sbin/mount > "$OUTPUT/SystemInfo/DiskInfo/mount.txt"
+/sbin/mount > "$OUTPUT/SystemInfo/SystemInfo_Data/DiskInfo/mount.txt"
 
 # FileVault Status
 FileVault=$(/usr/bin/sudo /usr/bin/fdesetup status)
 
 if [[ $FileVault = "FileVault is On." ]]; then
-	echo "[Info]  FileVault is ON." > "$OUTPUT/SystemInfo/DiskInfo/FileVault_Status.txt"
+	echo "[Info]  FileVault is ON." > "$OUTPUT/SystemInfo/SystemInfo_Data/DiskInfo/FileVault_Status.txt"
 elif [[ $FileVault = "FileVault is Off." ]]; then
-	echo "[ALERT] FileVault is OFF." > "$OUTPUT/SystemInfo/DiskInfo/FileVault_Status.txt"
+	echo "[ALERT] FileVault is OFF." > "$OUTPUT/SystemInfo/SystemInfo_Data/DiskInfo/FileVault_Status.txt"
 	echo -e "\033[91m[ALERT] FileVault is Off.\033[0m"
 else
-	echo "$FileVault" > "$OUTPUT/SystemInfo/DiskInfo/FileVault_Status.txt"
+	echo "$FileVault" > "$OUTPUT/SystemInfo/SystemInfo_Data/DiskInfo/FileVault_Status.txt"
 fi
 
+# Sharing
+/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing"
+
 # Remote Login
+# Note: Remote Login lets users of other computers access this computer using SSH and SFTP.
 RemoteLogin=$(/usr/bin/sudo /usr/sbin/systemsetup -getremotelogin)
 
 if [[ $RemoteLogin = "Remote Login: On" ]]; then
-	echo "[Info]  Remote Login is ON." > "$OUTPUT/SystemInfo/Remote-Login.txt"
+	echo "[Info]  Remote Login is ON." > "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/Remote-Login.txt"
 elif [[ $RemoteLogin = "Remote Login: Off" ]]; then	
-	echo "[Info]  Remote Login is OFF." > "$OUTPUT/SystemInfo/Remote-Login.txt"
+	echo "[Info]  Remote Login is OFF." > "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/Remote-Login.txt"
 else
-	echo "$RemoteLogin" > "$OUTPUT/SystemInfo/Remote-Login.txt"
+	echo "$RemoteLogin" > "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/Remote-Login.txt"
+fi
+
+# System Settings > General > Sharing > Remote Login
+
+# Remote Apple Events (RAE) aka Remote Application Scripting
+# Note: Remote Application Scripting allows Apple events sent from other computers to control applications on this Mac.
+RemoteAppleEvents=$(/usr/bin/sudo /usr/sbin/systemsetup -getremoteappleevents)
+echo "$RemoteAppleEvents" > "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/Remote-Apple-Scripting.txt"
+
+# System Settings > General > Sharing > Remote Application Scripting
+
+# Ensure Remote Apple Events Is Disabled
+# /usr/bin/sudo /usr/sbin/systemsetup -setremoteappleevents off
+if echo "$RemoteAppleEvents" | /usr/bin/grep -q "Remote Apple Events: On"; then
+	echo -e "\033[91m[ALERT] Remote Apple Events (RAE) is ON.\033[0m"
+fi
+
+# Apple Remote Desktop (ARD) aka Remote Management
+# Note: Remote Management allows other users to access this computer using Apple Remote Desktop.
+RemoteManagement=$(/usr/bin/sudo /bin/launchctl print gui/501/com.apple.RemoteDesktop.agent | grep -A4 "gui/501/com.apple.RemoteDesktop.agent =")
+if echo "$RemoteManagement" | /usr/bin/grep -q "state = running"; then
+	echo "[Info]  Apple Remote Desktop (ARD) is ON." > "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/Remote-Management.txt"
+else
+	echo "[Info]  Apple Remote Desktop (ARD) is OFF." > "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/Remote-Management.txt"
+fi
+
+# System Settings > General > Sharing > Remote Management
+
+# Apple Remote Desktop (ARD) Agent - Preferences
+FILE="/Library/Preferences/com.apple.ARDAgent.plist"
+if [[ -f "$FILE" ]]; then
+	/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/com.apple.ARDAgent.plist"
+	/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/com.apple.ARDAgent.txt" 
+fi
+
+# Remote Management - Preferences
+FILE="/Library/Preferences/com.apple.RemoteManagement.plist"
+if [[ -f "$FILE" ]]; then
+	/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/com.apple.RemoteManagement.plist"
+	/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/com.apple.RemoteManagement.txt" 
+fi
+
+# RemoteDesktop - Preferences
+FILE="/Library/Preferences/com.apple.RemoteDesktop.plist"
+if [[ -f "$FILE" ]]; then
+	/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/com.apple.RemoteDesktop.plist"
+	/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/com.apple.RemoteDesktop.txt" 
+fi
+
+# Remote Management Database File (RMDB)
+FILE="/private/var/db/RemoteManagement/RMDB/rmdb.sqlite3"
+if [[ -f "$FILE" ]]; then
+	/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/rmdb.sqlite3"
+fi
+
+# Remote Management Configuration File
+# The execution of the Apple Remote Desktop (ARD) kickstart command modifies the contents of the configuration file to contain the string "enabled".
+# The Apple Remote Desktop kickstart command is a powerful utility located at /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart used to manage the ARD agent via Terminal. 
+# It enables, configures, activates, and restarts the agent, often used for remote setup over SSH. 
+FILE="/Library/Application Support/Apple/Remote Desktop/RemoteManagement.launchd"
+if [[ -f "$FILE" ]]; then
+	/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/RemoteManagement.launchd"
+fi
+
+# Collecting Apple Remote Desktop Artifacts
+SOURCE="/private/var/db/RemoteManagement/"
+DESTINATION="$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/RemoteManagement_Data"
+if [[ -d "$SOURCE" ]] && [[ -n "$(/bin/ls -A "$SOURCE")" ]]; then
+	/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/RemoteManagement_Data"
+	/usr/bin/sudo /usr/bin/rsync -av "$SOURCE" "$DESTINATION" >> "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/RemoteManagement_Collection.txt"
+fi
+
+# Creating Archive File (ZIP)
+if [[ -d "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/RemoteManagement_Data" ]]; then
+	cd "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing"
+	/usr/bin/zip -q -r "RemoteManagement_$SerialNumber.zip" RemoteManagement_Data
+	cd "$SCRIPT_DIR"
+fi
+
+# Cleaning up
+FOLDER="$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/RemoteManagement_Data"
+if [[ -d "$FOLDER" ]]; then
+	/bin/rm -rf "$FOLDER"
 fi
 
 # I/O Statistics
-/usr/sbin/iostat > "$OUTPUT/SystemInfo/IO_Statistics.txt" 2>&1
+/usr/sbin/iostat > "$OUTPUT/SystemInfo/SystemInfo_Data/IO_Statistics.txt" 2>&1
 
 # Login History
-/usr/bin/last > "$OUTPUT/SystemInfo/Login_History.txt" 2>&1
+/usr/bin/last > "$OUTPUT/SystemInfo/SystemInfo_Data/Login_History.txt" 2>&1
 
 # Users
-/bin/mkdir -p "$OUTPUT/SystemInfo/UserInfo"
-/usr/bin/dscl . list /Users UniqueID | /usr/bin/awk '$2 > 500' > "$OUTPUT/SystemInfo/UserInfo/Users.txt" 2>&1
+/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo"
+/usr/bin/dscl . list /Users UniqueID | /usr/bin/awk '$2 > 500' | /usr/bin/sort -k2 > "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/Users.txt" 2>&1
 
 # Admin Users
 Administrators=$(/usr/bin/dscl . -read /Groups/admin GroupMembership | /usr/bin/sed -e 's/GroupMembership: //g' | /usr/bin/tr " " "\n")
-echo "$Administrators" > "$OUTPUT/SystemInfo/UserInfo/Administrators.txt"
+echo "$Administrators" > "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/Administrators.txt"
 
 # Local Admins
 admin_list=()
@@ -640,9 +791,9 @@ do
 done
 
 if [[ "${admin_list[@]}" != "" ]]; then
-	echo "${admin_list[@]}" > "$OUTPUT/SystemInfo/UserInfo/Local-Administrators.txt"
+	echo "${admin_list[@]}" > "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/Local-Administrators.txt"
 else
-	echo "None" > "$OUTPUT/SystemInfo/UserInfo/Local-Administrators.txt"
+	echo "None" > "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/Local-Administrators.txt"
 fi
 
 # Guest User
@@ -650,11 +801,11 @@ FILE="/Library/Preferences/com.apple.loginwindow.plist"
 if [[ -f "$FILE" ]]; then
 	GuestUser=$(/usr/bin/defaults read "$FILE" GuestEnabled)
 	if [[ $GuestUser = "0" ]]; then
-		echo "[Info]  Guest User is OFF." > "$OUTPUT/SystemInfo/UserInfo/GuestUser.txt"
+		echo "[Info]  Guest User is OFF." > "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/GuestUser.txt"
 	elif [[ $GuestUser = "1" ]]; then
-		echo "[Info]  Guest User is ON." > "$OUTPUT/SystemInfo/UserInfo/GuestUser.txt"
+		echo "[Info]  Guest User is ON." > "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/GuestUser.txt"
 	else
-		echo "$GuestUser" > "$OUTPUT/SystemInfo/GuestUser.txt"
+		echo "$GuestUser" > "$OUTPUT/SystemInfo/SystemInfo_Data/GuestUser.txt"
 	fi
 fi
 
@@ -662,30 +813,30 @@ fi
 for UserName in $(/usr/bin/dscl . list /Users UniqueID | /usr/bin/awk '$2 > 500 {print $1}')
 do
 	if [ -e "/Users/$UserName/Library/Preferences/MobileMeAccounts.plist" ]; then
-		/bin/cp "/Users/$UserName/Library/Preferences/MobileMeAccounts.plist" "$OUTPUT/SystemInfo/UserInfo/MobileMeAccounts_$UserName.plist"
-		/usr/libexec/PlistBuddy -c "print" "/Users/$UserName/Library/Preferences/MobileMeAccounts.plist" > "$OUTPUT/SystemInfo/UserInfo/MobileMeAccounts_$UserName.txt"
+		/bin/cp "/Users/$UserName/Library/Preferences/MobileMeAccounts.plist" "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/MobileMeAccounts_$UserName.plist"
+		/usr/libexec/PlistBuddy -c "print" "/Users/$UserName/Library/Preferences/MobileMeAccounts.plist" > "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/MobileMeAccounts_$UserName.txt"
 		AccountID=$(/usr/libexec/PlistBuddy -c "print :Accounts:0:AccountID" "/Users/$UserName/Library/Preferences/MobileMeAccounts.plist")
 		EmailVerified=$(/usr/libexec/PlistBuddy -c "print :Accounts:0:primaryEmailVerified" "/Users/$UserName/Library/Preferences/MobileMeAccounts.plist")
 		IsManaged=$(/usr/libexec/PlistBuddy -c "print :Accounts:0:isManagedAppleID" "/Users/$UserName/Library/Preferences/MobileMeAccounts.plist")
 		MobileDocuments=$(/usr/libexec/PlistBuddy -c "print :Accounts:0:Services" "/Users/$UserName/Library/Preferences/MobileMeAccounts.plist" | grep -A1 -B6 "Name = MOBILE_DOCUMENTS")
 		CloudDesktop=$(/usr/bin/sudo /usr/bin/xattr -p com.apple.icloud.desktop "/Users/$UserName/Desktop" 2> /dev/null)
-		echo "Name:          $UserName" > "$OUTPUT/SystemInfo/UserInfo/Accounts.txt"
-		echo "AccountID:     $AccountID" >> "$OUTPUT/SystemInfo/UserInfo/Accounts.txt"
-		echo "EmailVerified: $EmailVerified" >> "$OUTPUT/SystemInfo/UserInfo/Accounts.txt"
-		echo "IsManaged:     $IsManaged" >> "$OUTPUT/SystemInfo/UserInfo/Accounts.txt"
+		echo "Name:          $UserName" > "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/Accounts.txt"
+		echo "AccountID:     $AccountID" >> "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/Accounts.txt"
+		echo "EmailVerified: $EmailVerified" >> "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/Accounts.txt"
+		echo "IsManaged:     $IsManaged" >> "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/Accounts.txt"
 
 		# iCloud Drive Sync
 		if echo "$MobileDocuments" | grep -q "Enabled = false";then
-			echo "iCloud Drive:  false" >> "$OUTPUT/SystemInfo/UserInfo/Accounts.txt"
+			echo "iCloud Drive:  false" >> "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/Accounts.txt"
 		else
-			echo "iCloud Drive:  true" >> "$OUTPUT/SystemInfo/UserInfo/Accounts.txt"
+			echo "iCloud Drive:  true" >> "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/Accounts.txt"
 		fi
 
 		# iCloud Desktop & Documents Folders Sync
 		if [[ -z "$CloudDesktop" ]]; then
-			echo "Desktop & Documents Folders: false" >> "$OUTPUT/SystemInfo/UserInfo/Accounts.txt"
+			echo "Desktop & Documents Folders: false" >> "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/Accounts.txt"
 		else
-			echo "Desktop & Documents Folders: true" >> "$OUTPUT/SystemInfo/UserInfo/Accounts.txt"
+			echo "Desktop & Documents Folders: true" >> "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/Accounts.txt"
 		fi
 	fi
 done
@@ -693,25 +844,31 @@ done
 # System Settings > [Apple Account] > iCloud > iCloud Drive
 
 # Login Window
-/usr/bin/sudo /usr/bin/defaults read /Library/Preferences/com.apple.loginwindow > "$OUTPUT/SystemInfo/LoginWindow.txt"
+/usr/bin/sudo /usr/bin/defaults read /Library/Preferences/com.apple.loginwindow > "$OUTPUT/SystemInfo/SystemInfo_Data/LoginWindow.txt"
 
 # System Configuration / Network Settings
 FILE="/Library/Preferences/SystemConfiguration/preferences.plist"
 if [[ -f "$FILE" ]]; then
-	/bin/cp "$FILE" "$OUTPUT/SystemInfo/preferences.plist"
-	/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/preferences.txt"
+	/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/preferences.plist"
+	/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/preferences.txt"
 fi
 
 # Network Interfaces
-/sbin/ifconfig > "$OUTPUT/SystemInfo/Network-Interfaces.txt" 2>&1
+/sbin/ifconfig > "$OUTPUT/SystemInfo/SystemInfo_Data/Network-Interfaces.txt" 2>&1
+
+# DNS Configuration
+/usr/sbin/scutil --dns > "$OUTPUT/SystemInfo/SystemInfo_Data/DNS.txt" 2>&1
+
+# List all Network Services
+/usr/sbin/networksetup -listallnetworkservices > "$OUTPUT/SystemInfo/SystemInfo_Data/Network-Services.txt" 2>&1
 
 # Installed Applications (Primary System Applications --> accessible to all users)
-/bin/mkdir -p "$OUTPUT/SystemInfo/AppInfo"
+/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo"
 InstalledApps=$(/usr/bin/mdfind -onlyin /Applications "kind:application" 2>&1 | /usr/bin/grep -v "UserQueryParser" | grep -v "\.app/Contents/" | /usr/bin/sort)
-echo "$InstalledApps" > "$OUTPUT/SystemInfo/AppInfo/Installed-Apps.txt"
+echo "$InstalledApps" > "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/Installed-Apps.txt"
 
 # Header
-echo "\"Name\",\"FullPath\",\"MD5\",\"SHA1\",\"SHA256\",\"Filesize\",\"Bytes\",\"Version\",\"BundleIdentifier\",\"Copyright\",\"UseCount\",\"LastUsedDate\",\"DateAdded\",\"ContentCreationDate\",\"ContentModificationDate\",\"SignatureStatus\",\"SignatureOrigin\",\"SignatureSource\"" > "$OUTPUT/SystemInfo/AppInfo/Installed-Apps.csv"
+echo "\"Name\",\"FullPath\",\"MD5\",\"SHA1\",\"SHA256\",\"Filesize\",\"Bytes\",\"Version\",\"BundleIdentifier\",\"Copyright\",\"UseCount\",\"LastUsedDate\",\"DateAdded\",\"ContentCreationDate\",\"ContentModificationDate\",\"SignatureStatus\",\"SignatureOrigin\",\"SignatureSource\"" > "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/Installed-Apps.csv"
 
 # Data
 while read Application
@@ -766,17 +923,17 @@ do
 	Origin=$(echo "$Signature" | /usr/bin/grep "origin=" | /usr/bin/sed -e 's/origin=//g')
 	Source=$(echo "$Signature" | /usr/bin/grep "source=" | /usr/bin/sed -e 's/source=//g')
 
-	echo \"$Name\",\"$Application\",\"$MD5\",\"$SHA1\",\"$SHA256\",\"$Filesize\",\"$Bytes\",\"$Version\",\"$BundleIdentifier\",\"$Copyright\",\"$UseCount\",\"$LastUsedDate\",\"$DateAdded\",\"$ContentCreationDate\",\"$ContentModificationDate\",\"$Status\",\"$Origin\",\"$Source\" >> "$OUTPUT/SystemInfo/AppInfo/Installed-Apps.csv"
+	echo \"$Name\",\"$Application\",\"$MD5\",\"$SHA1\",\"$SHA256\",\"$Filesize\",\"$Bytes\",\"$Version\",\"$BundleIdentifier\",\"$Copyright\",\"$UseCount\",\"$LastUsedDate\",\"$DateAdded\",\"$ContentCreationDate\",\"$ContentModificationDate\",\"$Status\",\"$Origin\",\"$Source\" >> "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/Installed-Apps.csv"
 
-done < "$OUTPUT/SystemInfo/AppInfo/Installed-Apps.txt"
+done < "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/Installed-Apps.txt"
 
 # Applications (Primary System Applications + User-Specific Applications + System Utility Applications + Alternative Locations)
-/bin/mkdir -p "$OUTPUT/SystemInfo/AppInfo"
+/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo"
 AllApps=$(/usr/bin/mdfind -onlyin "/Applications/" -onlyin "/Users/" -onlyin "/System/Applications/" -onlyin "/Library/Application Support/" "kind:application" 2>&1 | /usr/bin/grep -v "UserQueryParser" | grep -v "\.app/Contents/" | /usr/bin/sort)
-echo "$AllApps" > "$OUTPUT/SystemInfo/AppInfo/Apps.txt"
+echo "$AllApps" > "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/Apps.txt"
 
 # Header
-echo "\"Name\",\"FullPath\",\"MD5\",\"SHA1\",\"SHA256\",\"Filesize\",\"Bytes\",\"Version\",\"BundleIdentifier\",\"Copyright\",\"UseCount\",\"LastUsedDate\",\"DateAdded\",\"ContentCreationDate\",\"ContentModificationDate\",\"SignatureStatus\",\"SignatureOrigin\",\"SignatureSource\"" > "$OUTPUT/SystemInfo/AppInfo/Apps.csv"
+echo "\"Name\",\"FullPath\",\"MD5\",\"SHA1\",\"SHA256\",\"Filesize\",\"Bytes\",\"Version\",\"BundleIdentifier\",\"Copyright\",\"UseCount\",\"LastUsedDate\",\"DateAdded\",\"ContentCreationDate\",\"ContentModificationDate\",\"SignatureStatus\",\"SignatureOrigin\",\"SignatureSource\"" > "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/Apps.csv"
 
 # Data
 while read Application
@@ -839,206 +996,288 @@ do
 	Origin=$(echo "$Signature" | /usr/bin/grep "origin=" | /usr/bin/sed -e 's/origin=//g')
 	Source=$(echo "$Signature" | /usr/bin/grep "source=" | /usr/bin/sed -e 's/source=//g')
 
-	echo \"$Name\",\"$Application\",\"$MD5\",\"$SHA1\",\"$SHA256\",\"$Filesize\",\"$Bytes\",\"$Version\",\"$BundleIdentifier\",\"$Copyright\",\"$UseCount\",\"$LastUsedDate\",\"$DateAdded\",\"$ContentCreationDate\",\"$ContentModificationDate\",\"$Status\",\"$Origin\",\"$Source\" >> "$OUTPUT/SystemInfo/AppInfo/Apps.csv"
+	echo \"$Name\",\"$Application\",\"$MD5\",\"$SHA1\",\"$SHA256\",\"$Filesize\",\"$Bytes\",\"$Version\",\"$BundleIdentifier\",\"$Copyright\",\"$UseCount\",\"$LastUsedDate\",\"$DateAdded\",\"$ContentCreationDate\",\"$ContentModificationDate\",\"$Status\",\"$Origin\",\"$Source\" >> "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/Apps.csv"
 
-done < "$OUTPUT/SystemInfo/AppInfo/Apps.txt"
+done < "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/Apps.txt"
 
 SPApplicationsDataType=$(/usr/sbin/system_profiler SPApplicationsDataType)
-echo "$SPApplicationsDataType" > "$OUTPUT/SystemInfo/SPApplicationsDataType.txt"
-/usr/sbin/system_profiler -json -nospawn SPApplicationsDataType -detailLevel full > "$OUTPUT/SystemInfo/AppInfo/SPApplicationsDataType.json"
+echo "$SPApplicationsDataType" > "$OUTPUT/SystemInfo/SystemInfo_Data/SPApplicationsDataType.txt"
+/usr/sbin/system_profiler -json -nospawn SPApplicationsDataType -detailLevel full > "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/SPApplicationsDataType.json"
 
 # System Apps
 SystemApps=$(/usr/bin/mdfind -onlyin /System/Applications/ "kind:application" 2>&1 | /usr/bin/grep -v "UserQueryParser" | /usr/bin/sort)
-echo "$SystemApps" > "$OUTPUT/SystemInfo/AppInfo/System-Apps.txt"
+echo "$SystemApps" > "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/System-Apps.txt"
 
 # List App Store Apps
-/usr/bin/find /Applications -path '*Contents/_MASReceipt/receipt' -maxdepth 4 -print | /usr/bin/sed 's#.app/Contents/_MASReceipt/receipt#.app#g; s#/Applications/##' | /usr/bin/sort > "$OUTPUT/SystemInfo/AppInfo/AppStore-Apps.txt" 2>&1
+/usr/bin/find /Applications -path '*Contents/_MASReceipt/receipt' -maxdepth 4 -print | /usr/bin/sed 's#.app/Contents/_MASReceipt/receipt#.app#g; s#/Applications/##' | /usr/bin/sort > "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/AppStore-Apps.txt" 2>&1
 
 # Recently Modified Applications (Last 7 Days)
-#/usr/bin/find /Applications -type f -mtime -7 -ls > "$OUTPUT/SystemInfo/AppInfo/Recently-Modified-Apps.txt" 2>&1
+#/usr/bin/find /Applications -type f -mtime -7 -ls > "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/Recently-Modified-Apps.txt" 2>&1
 
 # List Apps and Processes connected to Internet
-/usr/bin/sudo /usr/sbin/lsof -nPi | /usr/bin/cut -f 1 -d " " | /usr/bin/uniq | /usr/bin/tail -n +2 > "$OUTPUT/SystemInfo/AppInfo/Internet-Connected-Apps.txt" 2>&1
+/usr/bin/sudo /usr/sbin/lsof -nPi | /usr/bin/cut -f 1 -d " " | /usr/bin/uniq | /usr/bin/tail -n +2 > "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/Internet-Connected-Apps.txt" 2>&1
 
 # Active Processes
-/bin/ps aux > "$OUTPUT/SystemInfo/Active-Processes.txt" 2>&1
+/bin/ps aux > "$OUTPUT/SystemInfo/SystemInfo_Data/Active-Processes.txt" 2>&1
 
 # Recently Downloaded Files (Last 7 Days)
 for UserName in $(/usr/bin/dscl . list /Users UniqueID | /usr/bin/awk '$2 > 500 {print $1}')
 do
-	/usr/bin/find /Users/$UserName/Downloads -type f -mtime -7 -ls > "$OUTPUT/SystemInfo/Recently-Downloaded-Files_$UserName.txt" 2>&1
+	/usr/bin/find /Users/$UserName/Downloads -type f -mtime -7 -ls > "$OUTPUT/SystemInfo/SystemInfo_Data/Recently-Downloaded-Files_$UserName.txt" 2>&1
 done
 
 # List All Active Network Connections
-/usr/bin/sudo /usr/sbin/lsof -i > "$OUTPUT/SystemInfo/Active-Network-Connections.txt" 2>&1
+/usr/bin/sudo /usr/sbin/lsof -i > "$OUTPUT/SystemInfo/SystemInfo_Data/Active-Network-Connections.txt" 2>&1
 
 # List Open Files
-/usr/bin/sudo /usr/sbin/lsof -n > "$OUTPUT/SystemInfo/Open-Files.txt" 2>&1
+/usr/bin/sudo /usr/sbin/lsof -n > "$OUTPUT/SystemInfo/SystemInfo_Data/Open-Files.txt" 2>&1
 
 # Install History
 # https://github.com/BigMacAdmin/macOS-Stuff/blob/main/installerHistory.sh
 FILE="/Library/Receipts/InstallHistory.plist"
 if [[ -f "$FILE" ]]; then
-	/usr/libexec/PlistBuddy -c "print" "$FILE" > "$OUTPUT/SystemInfo/AppInfo/InstallHistory.txt"
+	/usr/libexec/PlistBuddy -c "print" "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/InstallHistory.txt"
 fi
 
 # Dock Information
-/bin/mkdir -p "$OUTPUT/SystemInfo/DockInfo/raw"
+/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/DockInfo/raw"
 for UserName in $(/usr/bin/dscl . list /Users UniqueID | /usr/bin/awk '$2 > 500 {print $1}')
 do
 	FILE="/Users/$UserName/Library/Preferences/com.apple.dock.plist"
 	if [[ -f "$FILE" ]]; then
-		/bin/cp "$FILE" "$OUTPUT/SystemInfo/DockInfo/raw/DockItems_$UserName.plist"
-		/usr/bin/defaults read "$FILE" > "$OUTPUT/SystemInfo/DockInfo/DockItems_$UserName.txt"
-	fi	
+		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/DockInfo/raw/DockItems_$UserName.plist"
+		/usr/bin/defaults read "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/DockInfo/DockItems_$UserName.txt"
+	fi
+done
+
+# Connected iDevices
+for UserName in $(/usr/bin/dscl . list /Users UniqueID | /usr/bin/awk '$2 > 500 {print $1}')
+do
+	FILE="/Users/$UserName/Library/Preferences/com.apple.iPod.plist"
+	if [[ -f "$FILE" ]]; then
+		/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/iDevices/raw"
+		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/iDevices/raw/iDevices_$UserName.plist"
+		/usr/bin/defaults read "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/iDevices/iDevices_$UserName.txt"
+	fi
 done
 
 # Mounted Volumes
 LoggedInUser=$(/usr/bin/stat -f %Su /dev/console)
 if [[ -f "/Users/$LoggedInUser/Library/Preferences/com.apple.finder.plist" ]]; then
-	/usr/bin/defaults read "/Users/$LoggedInUser/Library/Preferences/com.apple.finder.plist" FXDesktopVolumePositions > "$OUTPUT/SystemInfo/Mounted-Volumes.txt"
+	/usr/bin/defaults read "/Users/$LoggedInUser/Library/Preferences/com.apple.finder.plist" FXDesktopVolumePositions > "$OUTPUT/SystemInfo/SystemInfo_Data/Mounted-Volumes.txt"
 fi
 
 # Find My Mac
 FMM=$(/usr/sbin/nvram -x -p | /usr/bin/grep fmm-mobileme-token-FMM)
 if [[ -z "$fmmToken" ]]; then
-	echo "[Info]  Find My Mac is disabled." > "$OUTPUT/SystemInfo/FindMyMac_Status.txt"
+	echo "[Info]  Find My Mac is disabled." > "$OUTPUT/SystemInfo/SystemInfo_Data/FindMyMac_Status.txt"
 else
-	echo "[Info]  Find my Mac is enabled." > "$OUTPUT/SystemInfo/FindMyMac_Status.txt"
+	echo "[Info]  Find my Mac is enabled." > "$OUTPUT/SystemInfo/SystemInfo_Data/FindMyMac_Status.txt"
 fi
 
 # Supervision / Device Enrollment (MDM)
-/bin/mkdir -p "$OUTPUT/SystemInfo/MDM"
-/usr/bin/sudo /usr/bin/profiles show > "$OUTPUT/SystemInfo/MDM/Profiles.txt" 2>&1
-/usr/bin/sudo /usr/bin/profiles status -type enrollment > "$OUTPUT/SystemInfo/MDM/DeviceEnrollment_Status.txt" 2>&1
+/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/MDM"
+/usr/bin/sudo /usr/bin/profiles show > "$OUTPUT/SystemInfo/SystemInfo_Data/MDM/Profiles.txt" 2>&1
+/usr/bin/sudo /usr/bin/profiles status -type enrollment > "$OUTPUT/SystemInfo/SystemInfo_Data/MDM/DeviceEnrollment_Status.txt" 2>&1
 
-# System Settings > Privacy and Security > Profiles
+# System Settings > General > Device Management
 
 # Jamf Pro (Apple Device Management)
 # https://learn.jamf.com/en-US/bundle/jamf-pro-documentation-current/page/Components_Installed_on_Managed_Computers.html
 FILE="/usr/local/jamf/bin/jamf"
 if [[ -f "$FILE" ]]; then
-	/bin/mkdir -p "$OUTPUT/SystemInfo/Jamf-Pro"
-	/usr/local/jamf/bin/jamf about > "$OUTPUT/SystemInfo/Jamf-Pro/About.txt" 2>&1
-	/usr/local/jamf/bin/jamf version > "$OUTPUT/SystemInfo/Jamf-Pro/Version.txt" 2>&1
-	/usr/local/jamf/bin/jamf help > "$OUTPUT/SystemInfo/Jamf-Pro/Help.txt" 2>&1
+	/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Jamf-Pro"
+	/usr/local/jamf/bin/jamf about > "$OUTPUT/SystemInfo/SystemInfo_Data/Jamf-Pro/About.txt" 2>&1
+	/usr/local/jamf/bin/jamf version > "$OUTPUT/SystemInfo/SystemInfo_Data/Jamf-Pro/Version.txt" 2>&1
+	/usr/local/jamf/bin/jamf help > "$OUTPUT/SystemInfo/SystemInfo_Data/Jamf-Pro/Help.txt" 2>&1
 fi
 
 # Jamf Pro - Preferences
 FILE="/Library/Preferences/com.jamfsoftware.jamf.plist"
 if [[ -f "$FILE" ]]; then
-	/bin/mkdir -p "$OUTPUT/SystemInfo/Jamf-Pro"
-	/bin/cp "$FILE" "$OUTPUT/SystemInfo/Jamf-Pro/com.jamfsoftware.jamf.plist" 
+	/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Jamf-Pro"
+	/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Jamf-Pro/com.jamfsoftware.jamf.plist" 
 fi
 
 # Jamf Pro  - Client Logging
 FILE="/var/log/jamf.log"
 if [[ -f "$FILE" ]]; then
-	/bin/mkdir -p "$OUTPUT/SystemInfo/Jamf-Pro"
-	/bin/cp "$FILE" "$OUTPUT/SystemInfo/Jamf-Pro/jamf.log"
-fi
-
-# Jamf Pro - Debug Logging for the JamfDaemon
-FILE="/usr/local/jamf/bin/jamf"
-if [[ -f "$FILE" ]]; then
-	/bin/mkdir -p "$OUTPUT/SystemInfo/Jamf-Pro"
-	/usr/bin/log stream --level debug --predicate 'subsystem BEGINSWITH "com.jamf.management.daemon"' --style compact > "$OUTPUT/SystemInfo/Jamf-Pro/JamfDaemon.txt"
+	/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Jamf-Pro"
+	/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Jamf-Pro/jamf.log"
 fi
 
 # Jamf Protect
 # https://learn.jamf.com/en-US/bundle/jamf-protect-documentation/page/Command-Line_Tool.html
 FILE="/usr/local/bin/protectctl"
 if [[ -f "$FILE" ]]; then
-	/bin/mkdir -p "$OUTPUT/SystemInfo/Jamf-Protect"
-	/usr/local/bin/protectctl version > "$OUTPUT/SystemInfo/Jamf-Protect/Version.txt" 2>&1
-	/usr/local/bin/protectctl info -v > "$OUTPUT/SystemInfo/Jamf-Protect/Info.txt" 2>&1
-	/usr/local/bin/protectctl help > "$OUTPUT/SystemInfo/Jamf-Protect/Help.txt" 2>&1
+	/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Jamf-Protect"
+	/usr/local/bin/protectctl version > "$OUTPUT/SystemInfo/SystemInfo_Data/Jamf-Protect/Version.txt" 2>&1
+	/usr/local/bin/protectctl info -v > "$OUTPUT/SystemInfo/SystemInfo_Data/Jamf-Protect/Info.txt" 2>&1
+	/usr/local/bin/protectctl help > "$OUTPUT/SystemInfo/SystemInfo_Data/Jamf-Protect/Help.txt" 2>&1
 fi
 
-# Jamf Protect - Daemon Activity
-FILE="/usr/local/jamf/bin/jamf"
-if [[ -f "$FILE" ]]; then
-	/bin/mkdir -p "$OUTPUT/SystemInfo/Jamf-Pro"
-	/usr/bin/log show --debug --predicate "subsystem == 'com.jamf.protect.daemon' && category != 'Cache'" > "$OUTPUT/SystemInfo/Jamf-Pro/Daemon-Activity.txt"
-	/usr/bin/log show --debug --predicate "processImagePath CONTAINS 'JamfProtect'" --info > "$OUTPUT/SystemInfo/Jamf-Pro/JamfProtect-Activity.txt"
+# Microsoft Intune (MDM)
+APPLICATION="/Library/Intune/Microsoft Intune Agent.app"
+if [[ -d "$APPLICATION" ]]; then
+	/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Intune"
+	echo "[Info] Microsoft Intune Agent found" > "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/Intune.txt"
+
+	# Collecting Microsoft Intune Logs
+
+	# Intune MDM Daemon Logs
+	/usr/bin/sudo /usr/bin/find "/Library/Logs/Microsoft/Intune" -name "IntuneMDMDaemon*.log" -type f > "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/IntuneMDMDaemonLogs.txt" 2> /dev/null
+	if [[ -s "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/IntuneMDMDaemonLogs.txt" ]]; then
+		/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/Logs/Daemon"
+		/usr/bin/sudo /usr/bin/rsync --recursive -av --files-from="$OUTPUT/SystemInfo/SystemInfo_Data/Intune/IntuneMDMDaemonLogs.txt" / "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/Logs/Daemon" > /dev/null
+	fi
+
+	# Intune MDM Agent Logs
+	/usr/bin/sudo /usr/bin/find "/Library/Logs/Microsoft/Intune" -name "IntuneMDMAgent*.log" -type f > "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/IntuneMDMAgentLogs.txt" 2> /dev/null
+	if [[ -s "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/IntuneMDMAgentLogs.txt" ]]; then
+		/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/Logs/Agent"
+		/usr/bin/sudo /usr/bin/rsync --recursive -av --files-from="$OUTPUT/SystemInfo/SystemInfo_Data/Intune/IntuneMDMAgentLogs.txt" / "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/Logs/Agent" > /dev/null
+	fi
+
+	# Intune MDM Daemon Configuration
+	FILE="/Library/LaunchDaemons/com.microsoft.intuneMDMAgent.daemon.plist"
+	if [[ -f "$FILE" ]]; then
+		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/com.microsoft.intuneMDMAgent.daemon.plist"
+		/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/com.microsoft.intuneMDMAgent.daemon.txt"
+	fi
+
+	# Intune MDM Agent Configuration
+	FILE="/Library/LaunchAgents/com.microsoft.intuneMDMAgent.plist"
+	if [[ -f "$FILE" ]]; then
+		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/com.microsoft.intuneMDMAgent.plist"
+		/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/com.microsoft.intuneMDMAgent.txt"
+	fi
 fi
 
 # Microsoft Defender for Endpoint (MDE)
 FILE="/Library/Managed Preferences/com.microsoft.wdav.plist"
 if [[ -f "$FILE" ]]; then
-	/bin/mkdir -p "$OUTPUT/SystemInfo/MDE"
+	/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/MDE"
 
 	# MDE Configuration
-	/bin/cp "$FILE" "$OUTPUT/SystemInfo/MDE/com.microsoft.wdav.plist"
-	/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/MDE/MDE-Configuration.txt"
+	/usr/bin/plutil -lint "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/MDE/MDE-Configuration-Validation.txt"
+	/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/MDE/com.microsoft.wdav.plist"
+	/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/MDE/MDE-Configuration.txt"
 
 	# MDE Attach
 	FILE="/Library/Preferences/com.microsoft.mdeattach.plist"
 	if [[ -f "$FILE" ]]; then
-		/bin/cp "$FILE" "$OUTPUT/SystemInfo/MDE/com.microsoft.mdeattach.plist"
+		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/MDE/com.microsoft.mdeattach.plist"
+		/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/MDE/com.microsoft.mdeattach.txt"
 	fi
 
-	# Onboarding Status / Settings
+	# Onboarding Status / Settings / Health Status
 	# https://learn.microsoft.com/en-us/defender-endpoint/mac-health-status
-	/usr/local/bin/mdatp health > "$OUTPUT/SystemInfo/MDE/MDE-Health.txt" 2>&1
+	/usr/local/bin/mdatp health > "$OUTPUT/SystemInfo/SystemInfo_Data/MDE/MDE-Health.txt" 2>&1
+	/usr/local/bin/mdatp health --output json > "$OUTPUT/SystemInfo/SystemInfo_Data/MDE/MDE-Health.json" 2>&1
 
 	# Install
 	FILE="/Library/Logs/Microsoft/mdatp/install.log"
 	if [[ -f "$FILE" ]]; then
-		/bin/cp "$FILE" "$OUTPUT/SystemInfo/MDE/install.log"
+		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/MDE/install.log"
 	fi
 
 	# Current Scan Schedule
-	/usr/local/bin/mdatp scan list > "$OUTPUT/SystemInfo/MDE/Scan-List.txt" 2>&1
+	/usr/local/bin/mdatp scan list > "$OUTPUT/SystemInfo/SystemInfo_Data/MDE/Scan-List.txt" 2>&1
 
 	# Protection History
-	/usr/local/bin/mdatp threat list > "$OUTPUT/SystemInfo/MDE/Protection-History.txt" 2>&1
+	/usr/local/bin/mdatp threat list > "$OUTPUT/SystemInfo/SystemInfo_Data/MDE/Protection-History.txt" 2>&1
 
 	# Exclusions
-	/usr/local/bin/mdatp exclusion list > "$OUTPUT/SystemInfo/MDE/Exclusions.txt" 2>&1
+	/usr/local/bin/mdatp exclusion list > "$OUTPUT/SystemInfo/SystemInfo_Data/MDE/Exclusions.txt" 2>&1
 
 	# Quarantine Files
-	/usr/local/bin/mdatp threat quarantine list > "$OUTPUT/SystemInfo/MDE/Quarantine-Files.txt" 2>&1
+	/usr/local/bin/mdatp threat quarantine list > "$OUTPUT/SystemInfo/SystemInfo_Data/MDE/Quarantine-Files.txt" 2>&1
 
 	# Quarantine Folder
-	# QUARANTINE_FOLDER="/Library/ApplicationSupport/Microsoft/Defender/quarantine"
+	QUARANTINE_FOLDER="/Library/Application Support/Microsoft/Defender/quarantine"
+	if [[ -n "$(/bin/ls -A "$QUARANTINE_FOLDER")" ]]; then
+
+		# Count Quarantine Files
+		COUNT=$(ls -1 "$QUARANTINE_FOLDER" | /usr/bin/grep -c ^)
+		if [[ $COUNT -ge 1 ]];then
+			echo -e "\033[91m[ALERT] $COUNT Quarantine File(s) found\033[0m"
+			echo "[ALERT] $COUNT Quarantine File(s) found" >> "$LOGFILE"
+		fi
+
+		# Collect Quarantine Files
+		if [[ $COUNT -ge 1 ]];then
+			cd "$OUTPUT/SystemInfo/SystemInfo_Data/MDE"
+			/usr/bin/zip -q -e -r -P "$PASSWORD" "Quarantine.zip" "$QUARANTINE_FOLDER/*"
+			cd "$SCRIPT_DIR"
+		fi
+	fi
 
 	# Diagnostic Logs
-	# DIAGNOSTIC_LOGS="/Library/Application Support/Microsoft/Defender/wdavdiag"
+	DIAGNOSTIC_LOGS="/Library/Application Support/Microsoft/Defender/wdavdiag"
+	DESTINATION="$OUTPUT/SystemInfo/SystemInfo_Data/MDE/DiagnosticLogs"
+	if [[ -d "$DIAGNOSTIC_LOGS" ]] && [[ -n "$(/bin/ls -A "$DIAGNOSTIC_LOGS")" ]]; then
+		/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/MDE/DiagnosticLogs"
+		/usr/bin/rsync -av "$DIAGNOSTIC_LOGS" "$DESTINATION" > /dev/null
+	fi
+
+	# Network Connectivity
+	/usr/local/bin/mdatp connectivity test > "$OUTPUT/SystemInfo/SystemInfo_Data/MDE/Network-Connectivity.txt" 2>&1
+
+	# Microsoft AutoUpdate (MAU)
+	FILE="/Library/Application Support/Microsoft/MAU2.0/Microsoft AutoUpdate.app/Contents/MacOS/msupdate"
+	if [[ -f "$FILE" ]]; then
+		cd "/Library/Application Support/Microsoft/MAU2.0/Microsoft AutoUpdate.app/Contents/MacOS"
+		
+		# Show usage information
+		./msupdate --help > "$OUTPUT/SystemInfo/SystemInfo_Data/MDE/Microsoft-AutoUpdate_Help.txt" 2>&1
+
+		# List available updates for installed Microsoft applications
+		./msupdate --list > "$OUTPUT/SystemInfo/SystemInfo_Data/MDE/Microsoft-AutoUpdate_Available-Updates.txt" 2>&1
+
+		# Application Identifier:
+		# IMCP01 - Intune Company Portal
+		# MSau04 - Microsoft AutoUpdate (MAU)
+		# WDAV00 - Microsoft Defender for Endpoint (MDE)
+
+		# Display current AutoUpdate configuration
+		./msupdate --config > "$OUTPUT/SystemInfo/SystemInfo_Data/MDE/AutoUpdate-Configuration.txt" 2>&1
+		./msupdate --config --format plist > "$OUTPUT/SystemInfo/SystemInfo_Data/MDE/AutoUpdate-Configuration.plist" 2>&1
+		cd "$SCRIPT_DIR"
+	fi
 fi
 
 # CrowdStrike Falcon
 FILE="/Library/CS/falconctl"
 if [ -f "$FILE" ]; then
-	/bin/mkdir -p "$OUTPUT/SystemInfo/CrowdStrike"
+	/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/CrowdStrike"
 
 	# CrowdStrike Agent Version
 	AgentVersion=$(/usr/sbin/sysctl cs.version | /usr/bin/awk '{ print $2 }')
-	echo "[Info]  CrowdStrike Agent Version: $AgentVersion" > "$OUTPUT/SystemInfo/CrowdStrike/Agent-Version.txt"
+	echo "[Info]  CrowdStrike Agent Version: $AgentVersion" > "$OUTPUT/SystemInfo/SystemInfo_Data/CrowdStrike/Agent-Version.txt"
 
 	# CrowdStrike Agent-ID
 	AgentID=$(/usr/sbin/sysctl cs.sensorid | /usr/bin/awk '{ print $2 }')
-	echo "[Info]  CrowdStrike Agent-ID: $AgentID" > "$OUTPUT/SystemInfo/CrowdStrike/Agent-ID.txt"
+	echo "[Info]  CrowdStrike Agent-ID: $AgentID" > "$OUTPUT/SystemInfo/SystemInfo_Data/CrowdStrike/Agent-ID.txt"
 
 	# CrowdStrike InstallGuard
 	InstallGuard=$(/usr/sbin/sysctl cs.control.installguard | /usr/bin/awk '{ print $2 }')
-	echo "[Info]  CrowdStrike InstallGuard: $InstallGuard" > "$OUTPUT/SystemInfo/CrowdStrike/InstallGuard.txt"
+	echo "[Info]  CrowdStrike InstallGuard: $InstallGuard" > "$OUTPUT/SystemInfo/SystemInfo_Data/CrowdStrike/InstallGuard.txt"
 fi
 
 # Creating Archive File
-if [[ -d "$OUTPUT/SystemInfo" ]]; then
+if [[ -d "$OUTPUT/SystemInfo/SystemInfo_Data" ]]; then
 	echo "[Info]  Compressing System Information (.zip) ..."
-	cd "$OUTPUT"
-	/usr/bin/zip -q -r "SystemInfo_$SerialNumber.zip" SystemInfo
+	cd "$OUTPUT/SystemInfo"
+	/usr/bin/zip -q -e -r -P "$ARCHIVE_PASSWORD" "SystemInfo_$SerialNumber.zip" SystemInfo_Data
 	cd "$SCRIPT_DIR"
 fi
 
 # Archive Name
-ARCHIVE=$(/bin/ls -l "$OUTPUT" | /usr/bin/awk '{ print $9 }' | /usr/bin/grep "^SystemInfo_.*.zip$")
+ARCHIVE=$(/bin/ls -l "$OUTPUT/SystemInfo" | /usr/bin/awk '{ print $9 }' | /usr/bin/grep "^SystemInfo_.*.zip$")
 echo "[Info]  Archive Name: $ARCHIVE"
 
 # Archive Size
-FILE="$OUTPUT/$ARCHIVE"
+FILE="$OUTPUT/SystemInfo/$ARCHIVE"
 BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
 FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
 echo "[Info]  Archive Size: $FILESIZE"
@@ -1059,9 +1298,9 @@ MODIFY=$(TZ= /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Last Modified Time: $MODIFY UTC"
 
 # Cleaning up
-FOLDER="$OUTPUT/SystemInfo"
+FOLDER="$OUTPUT/SystemInfo/SystemInfo_Data"
 if [[ -d "$FOLDER" ]]; then
-/bin/rm -rf "$FOLDER"
+	/bin/rm -rf "$FOLDER"
 fi
 
 # Stats
@@ -1089,7 +1328,7 @@ START_COLLECTION=$(/bin/date +%s)
 
 # Verify File Integrity
 if [[ -s $(/bin/ls -A "$AFTERMATH") ]]; then
-	MD5=$(/sbin/md5 "$AFTERMATH" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
+	MD5=$(/sbin/md5 "$AFTERMATH" | /usr/bin/sed -e 's/.*= //g' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
 	if [[ "$MD5" = "$FILEHASH" ]]; then
 
 		# Check if Aftermath is executable
@@ -1098,8 +1337,8 @@ if [[ -s $(/bin/ls -A "$AFTERMATH") ]]; then
 		fi
 
 		# Check for Quarantine attribute
-		if /usr/bin/xattr $AFTERMATH | /usr/bin/grep -q "com.apple.quarantine"; then
-			/usr/bin/xattr -d com.apple.quarantine $AFTERMATH
+		if /usr/bin/xattr "$AFTERMATH" | /usr/bin/grep -q "com.apple.quarantine"; then
+			/usr/bin/xattr -d com.apple.quarantine "$AFTERMATH"
 		fi
 
 		# Aftermath Version
@@ -1182,7 +1421,7 @@ if [[ -s $(/bin/ls -A "$ARCHIVE_FILE") ]]
 then
 	# Verify File Integrity
 	if [[ -s $(/bin/ls -A "$AFTERMATH") ]]; then
-		MD5=$(/sbin/md5 "$AFTERMATH" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
+		MD5=$(/sbin/md5 "$AFTERMATH" | /usr/bin/sed -e 's/.*= //g' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
 		if [[ "$MD5" = "$FILEHASH" ]]; then
 
 			# Check if Aftermath is executable
@@ -1191,8 +1430,8 @@ then
 			fi
 
 			# Check for Quarantine attribute
-			if /usr/bin/xattr $AFTERMATH | /usr/bin/grep -q "com.apple.quarantine"; then
-				/usr/bin/xattr -d com.apple.quarantine $AFTERMATH
+			if /usr/bin/xattr "$AFTERMATH" | /usr/bin/grep -q "com.apple.quarantine"; then
+				/usr/bin/xattr -d com.apple.quarantine "$AFTERMATH"
 			fi
 
 			# Aftermath Version
@@ -1322,7 +1561,7 @@ echo "[Info]  $COUNT BTM Database File(s) found"
 # Creating Archive File (ZIP)
 if [[ -d "$OUTPUT/BTM/BTM_Data" ]]; then
 	cd "$OUTPUT/BTM"
-	/usr/bin/zip -q -r "BTM_$SerialNumber.zip" BTM_Data
+	/usr/bin/zip -q -e -r -P "$ARCHIVE_PASSWORD" "BTM_$SerialNumber.zip" BTM_Data
 	cd "$SCRIPT_DIR"
 fi
 
@@ -1422,7 +1661,7 @@ fi
 # Creating Archive File (ZIP)
 if [[ -d "$OUTPUT/DS_Store/DSStore_Data" ]]; then
 	cd "$OUTPUT/DS_Store"
-	/usr/bin/zip -q -r "DSStore_$SerialNumber.zip" DSStore_Data
+	/usr/bin/zip -q -e -r -P "$ARCHIVE_PASSWORD" "DSStore_$SerialNumber.zip" DSStore_Data
 	cd "$SCRIPT_DIR"
 fi
 
@@ -1512,7 +1751,7 @@ fi
 # Creating Archive File (ZIP)
 if [[ -d "$OUTPUT/FSEvents/FSEvents_Data" ]]; then
 	cd "$OUTPUT/FSEvents"
-	/usr/bin/zip -q -r "FSEvents_$SerialNumber.zip" FSEvents_Data
+	/usr/bin/zip -q -e -r -P "$ARCHIVE_PASSWORD" "FSEvents_$SerialNumber.zip" FSEvents_Data
 	cd "$SCRIPT_DIR"
 fi
 
@@ -1574,7 +1813,7 @@ LOGARCHIVE="$OUTPUT/UnifiedLogs/system_logs.logarchive"
 if [[ -d "$LOGARCHIVE" ]]; then
 	echo "[Info]  Compressing Unified Logs (.zip) ..."
 	cd "$OUTPUT/UnifiedLogs"
-	/usr/bin/zip -q -r "UnifiedLogs_$SerialNumber.zip" system_logs.logarchive
+	/usr/bin/zip -q -e -r -P "$ARCHIVE_PASSWORD" "UnifiedLogs_$SerialNumber.zip" system_logs.logarchive
 	cd "$SCRIPT_DIR"
 fi
 
@@ -1634,7 +1873,7 @@ START_SYSDIAGNOSE=$(/bin/date +%s)
 # Collecting Sysdiagnose Logs (System Diagnostic Information)
 echo "[Info]  Collecting Sysdiagnose Logs [approx. 1-5 min] ..."
 /bin/mkdir -p "$OUTPUT/Sysdiagnose/Sysdiagnose_Data"
-/usr/bin/sudo sysdiagnose -f "$OUTPUT/Sysdiagnose/Sysdiagnose_Data" -nbSu > "$OUTPUT/Sysdiagnose/Sysdiagnose.txt" 2>&1
+/usr/bin/sudo /usr/bin/sysdiagnose -f "$OUTPUT/Sysdiagnose/Sysdiagnose_Data" -nbSu > "$OUTPUT/Sysdiagnose/Sysdiagnose.txt" 2>&1
 
 # -f   results_directory
 # -n   Do not tar the resulting sysdiagnose directory.
@@ -1647,7 +1886,7 @@ if [[ -d "$OUTPUT/Sysdiagnose/Sysdiagnose_Data" ]]; then
 	if [[ -n "$( ls -A "$OUTPUT/Sysdiagnose/Sysdiagnose_Data" )" ]]; then
 		echo "[Info]  Compressing Sysdiagnose Logs (.zip) ..."
 		cd "$OUTPUT/Sysdiagnose"
-		/usr/bin/zip -q -r "Sysdiagnose_$SerialNumber.zip" Sysdiagnose_Data
+		/usr/bin/zip -q -e -r -P "$ARCHIVE_PASSWORD" "Sysdiagnose_$SerialNumber.zip" Sysdiagnose_Data
 		cd "$SCRIPT_DIR"
 	else
 		echo "Sysdiagnose_Data is empty."
@@ -1707,7 +1946,7 @@ START_KNOCK=$(/bin/date +%s)
 
 # Verify File Integrity
 ExpectedTeamID="VBG97UB4TA" # Objective-See, LLC (VBG97UB4TA)
-Application="$SCRIPT_DIR/tools/KnockKnock/KnockKnock.app"
+Application="$KNOCKKNOCK"
 if [[ -d "$Application" ]]; then
 
 	TeamID=$(/usr/sbin/spctl --assess --type execute -vv "$Application" 2>&1 | awk '/origin=/ {print $NF }' | /usr/bin/tr -d '()')
@@ -1720,12 +1959,12 @@ if [[ -d "$Application" ]]; then
 		fi
 
 		# Check for Quarantine attribute
-		if /usr/bin/xattr $Application | /usr/bin/grep -q "com.apple.quarantine"; then
-			/usr/bin/xattr -d com.apple.quarantine $Application
+		if /usr/bin/xattr "$Application" | /usr/bin/grep -q "com.apple.quarantine"; then
+			/usr/bin/xattr -dr com.apple.quarantine "$Application"
 		fi
 
 		# KnockKnock Version
-		FILE="$SCRIPT_DIR/tools/KnockKnock/KnockKnock.app/Contents/MacOS/KnockKnock"
+		FILE="$KNOCKKNOCK/Contents/MacOS/KnockKnock"
 		if [[ -f "$FILE" ]]; then
 			VERSION=$(/usr/bin/sudo "$FILE" -version | /usr/bin/sed -e 's/KnockKnock Version: //g')
 			echo "[Info]  KnockKnock Version: $VERSION"
@@ -1741,10 +1980,10 @@ else
 fi
 
 # KnockKnock
-FILE="$SCRIPT_DIR/tools/KnockKnock/KnockKnock.app/Contents/MacOS/KnockKnock"
+FILE="$KNOCKKNOCK/Contents/MacOS/KnockKnock"
 if [[ -f "$FILE" ]]; then
 	echo "[Info]  Scanning Live System w/ KnockKnock ..."
-	/bin/mkdir -p "$OUTPUT/KnockKnock/"
+	/bin/mkdir -p "$OUTPUT/KnockKnock/KnockKnock_Data"
 	cd "$SCRIPT_DIR/tools/KnockKnock/"
 	DATE=$(/bin/date -u +"%Y-%m-%d")
 
@@ -1752,7 +1991,7 @@ if [[ -f "$FILE" ]]; then
 	if [[ $VIRUSTOTAL == "YOUR_API_KEY" ]]; then
 
 		# Launch KnockKnock /wo VirusTotal
-		/usr/bin/sudo ./KnockKnock.app/Contents/MacOS/KnockKnock -whosthere -verbose > "$OUTPUT/KnockKnock/KnockKnock_Results_$DATE-draft.json"
+		/usr/bin/sudo ./KnockKnock.app/Contents/MacOS/KnockKnock -whosthere -verbose > "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE-draft.json"
 
 	else
 
@@ -1765,7 +2004,7 @@ if [[ -f "$FILE" ]]; then
 
 		# Launch KnockKnock /w VirusTotal
 		echo "[Info]  Scanning Live System w/ KnockKnock [approx. 1-2 min] ..."
-		/usr/bin/sudo ./KnockKnock.app/Contents/MacOS/KnockKnock -whosthere -verbose -key "$VIRUSTOTAL" > "$OUTPUT/KnockKnock/KnockKnock_Results_$DATE-draft.json"
+		/usr/bin/sudo ./KnockKnock.app/Contents/MacOS/KnockKnock -whosthere -verbose -key "$VIRUSTOTAL" > "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE-draft.json"
 	fi
 
 	cd $SCRIPT_DIR
@@ -1775,17 +2014,17 @@ else
 fi
 
 # Output
-if [[ -s "$OUTPUT/KnockKnock/KnockKnock_Results_$DATE-draft.json" ]]; then
+if [[ -s "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE-draft.json" ]]; then
 
 	# JSON
-	/bin/cat "$OUTPUT/KnockKnock/KnockKnock_Results_$DATE-draft.json" | /usr/bin/tail -n 1 > "$OUTPUT/KnockKnock/KnockKnock_Results_$DATE.json"
+	/bin/cat "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE-draft.json" | /usr/bin/tail -n 1 > "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE.json"
 
 	# TXT
-	/bin/cat "$OUTPUT/KnockKnock/KnockKnock_Results_$DATE-draft.json" | /usr/bin/sed '$d' > "$OUTPUT/KnockKnock/KnockKnock.txt"
+	/bin/cat "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE-draft.json" | /usr/bin/sed '$d' > "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock.txt"
 fi
 
 # File Size
-FILE="$OUTPUT/KnockKnock/KnockKnock_Results_$DATE.json"
+FILE="$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE.json"
 if [[ -s "$FILE" ]]; then
 	BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
 	FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.0f %s", $1, v[s] }')
@@ -1793,7 +2032,7 @@ if [[ -s "$FILE" ]]; then
 fi
 
 # Results
-FILE="$OUTPUT/KnockKnock/KnockKnock.txt"
+FILE="$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock.txt"
 if [[ -s "$FILE" ]]; then
 	if /bin/cat "$FILE" | /usr/bin/grep -q "RESULTS:"; then
 		COUNT=$(/bin/cat "$FILE" | /usr/bin/grep "persistent items" | /usr/bin/awk '{ print $1 }')
@@ -1811,10 +2050,46 @@ if [[ -s "$FILE" ]]; then
 	fi
 fi
 
+# Creating Archive File
+if [[ -d "$OUTPUT/KnockKnock/KnockKnock_Data" ]]; then
+	if [[ -n "$( ls -A "$OUTPUT/KnockKnock/KnockKnock_Data" )" ]]; then
+		echo "[Info]  Compressing KnockKnock Results (.zip) ..."
+		cd "$OUTPUT/KnockKnock"
+		/usr/bin/zip -q -e -r -P "$ARCHIVE_PASSWORD" "KnockKnock_$SerialNumber.zip" KnockKnock_Data
+		cd "$SCRIPT_DIR"
+	else
+		echo "KnockKnock_Data is empty."
+	fi
+fi
+
+# Archive Name
+ARCHIVE=$(/bin/ls -l "$OUTPUT/KnockKnock" | /usr/bin/awk '{ print $9 }' | /usr/bin/grep "^KnockKnock_.*.zip$")
+echo "[Info]  Archive Name: $ARCHIVE"
+
+# Archive Size
+FILE="$OUTPUT/KnockKnock/$ARCHIVE"
+BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
+FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
+echo "[Info]  Archive Size: $FILESIZE"
+
+# MD5 Calculation
+if [[ -s $(/bin/ls -A "$FILE") ]]; then
+	echo "[Info]  Calculating MD5 checksum of KnockKnock Archive ..."
+	MD5=$(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
+	echo "[Info]  MD5 Hash: $MD5"
+fi
+
+# Create Time
+BIRTH=$(TZ= /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+echo "[Info]  Create Time: $BIRTH UTC"
+
+# Last Modified Time
+MODIFY=$(TZ= /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+echo "[Info]  Last Modified Time: $MODIFY UTC"
+
 # Cleaning up
-FILE="$OUTPUT/KnockKnock/KnockKnock_Results_$DATE-draft.json"
-if [[ -f "$FILE" ]]; then
-	rm "$FILE"
+if [[ -d "$OUTPUT/KnockKnock/KnockKnock_Data" ]]; then
+	/bin/rm -r "$OUTPUT/KnockKnock/KnockKnock_Data"
 fi
 
 # Stats
@@ -1898,7 +2173,7 @@ if [[ -d "$OUTPUT/Spotlight/Spotlight_Data" ]]; then
 	if [[ -n "$( /bin/ls -A "$OUTPUT/Spotlight/Spotlight_Data" )" ]]; then
 		echo "[Info]  Compressing Spotlight Database (.zip) ..."
 		cd "$OUTPUT/Spotlight"
-		/usr/bin/zip -q -r "Spotlight_$SerialNumber.zip" Spotlight_Data
+		/usr/bin/zip -q -e -r -P "$ARCHIVE_PASSWORD" "Spotlight_$SerialNumber.zip" Spotlight_Data
 		cd "$SCRIPT_DIR"
 	fi
 fi
@@ -2056,7 +2331,7 @@ if [[ -d "$OUTPUT/RecentItems/RecentItems_Data" ]]; then
 	if [[ -n "$( /bin/ls -A "$OUTPUT/RecentItems/RecentItems_Data" )" ]]; then
 		echo "[Info]  Compressing Recents Items (.zip) ..."
 		cd "$OUTPUT/RecentItems"
-		/usr/bin/zip -q -r "RecentItems_$SerialNumber.zip" RecentItems_Data
+		/usr/bin/zip -q -e -r -P "$ARCHIVE_PASSWORD" "RecentItems_$SerialNumber.zip" RecentItems_Data
 		cd "$SCRIPT_DIR"
 	fi
 fi
@@ -2102,6 +2377,125 @@ echo "Recent Items Collection: $(($ELAPSED_TIME_RECENT/60)) min $(($ELAPSED_TIME
 #############################################################
 #############################################################
 
+TrueTree() {
+
+# Stats
+START_TRUETREE=$(/bin/date +%s)
+
+# Verify File Integrity
+ExpectedTeamID="C793NB2B2B" # Jaron Bradley (C793NB2B2B)
+if [[ -f "$TRUETREE" ]]; then
+
+	TeamID=$(/usr/sbin/spctl --assess --type execute -vv "$TRUETREE" 2>&1 | awk '/origin=/ {print $NF }' | /usr/bin/tr -d '()')
+
+	if [[ "$TeamID" = "$ExpectedTeamID" ]]; then
+
+		# Check if TrueTree is executable
+		if [[ ! -x "$TRUETREE" ]]; then
+			/bin/chmod +x "$TRUETREE"
+		fi
+
+		# Check for Quarantine attribute
+		if /usr/bin/xattr "$TRUETREE" | /usr/bin/grep -q "com.apple.quarantine"; then
+			/usr/bin/xattr -d com.apple.quarantine "$TRUETREE"
+		fi
+
+		# TrueTree Version Number
+		/bin/mkdir -p "$OUTPUT/TrueTree/TrueTree_Data"
+		VERSION=$(/usr/bin/sudo "$TRUETREE" --version)
+		echo "$VERSION" > "$OUTPUT/TrueTree/TrueTree_Data/Version.txt"
+		echo "[Info]  TrueTree v$VERSION"
+		echo "[Info]  File Integrity: OK"
+	else
+		echo -e "\033[91m[ALERT] File Integrity: FAILURE\033[0m"
+		exit 1
+	fi
+else
+	echo "[Error] TrueTree NOT found."
+	exit 1
+fi
+
+# TrueTree
+if [[ -f "$TRUETREE" ]]; then
+	echo "[Info]  Collecting Snapshot of Running Processes w/ TrueTree ..."
+	/bin/mkdir -p "$OUTPUT/TrueTree/TrueTree_Data/Colored"
+
+	# Timeline (Non-Tree Mode)
+	# Note: Does not collect a tree. Instead just prints processes sorted by creation time
+	/usr/bin/sudo "$TRUETREE" --timeline > "$OUTPUT/TrueTree/TrueTree_Data/TrueTree-Timeline.txt" 2> /dev/null
+
+	# Timestamps (including process timestamps)
+	# Note: For output in either format with process create time added use the --timestamps option
+	/usr/bin/sudo "$TRUETREE" --timestamps --nocolor -o "$OUTPUT/TrueTree/TrueTree_Data/TrueTree-with-Timestamps.txt" > /dev/null 2>&1
+	/usr/bin/sudo "$TRUETREE" --timestamps -o "$OUTPUT/TrueTree/TrueTree_Data/Colored/TrueTree-with-Timestamps-colored.txt" > /dev/null 2>&1
+
+	# Standard - Print the standard Unix tree instead of TrueTree
+	# Note: For tree output based on standard pids and ppids use --standard
+	/usr/bin/sudo "$TRUETREE" --standard --nocolor -o "$OUTPUT/TrueTree/TrueTree_Data/StandardTree.txt" > /dev/null 2>&1
+	/usr/bin/sudo "$TRUETREE" --standard -o "$OUTPUT/TrueTree/TrueTree_Data/Colored/StandardTree-colored.txt" > /dev/null 2>&1
+
+	# TrueTree (Default)
+	# Note: Displays an enhanced process tree using the TrueTree concept
+	/usr/bin/sudo "$TRUETREE" --nocolor -o "$OUTPUT/TrueTree/TrueTree_Data/TrueTree.txt" > /dev/null 2>&1
+	/usr/bin/sudo "$TRUETREE" -o "$OUTPUT/TrueTree/TrueTree_Data/Colored/TrueTree-colored.txt" > /dev/null 2>&1
+
+	# TrueTree (including sources of where each process parent came from)
+	# Note: To show where each parent pid was aquired from use the --sources option
+	/usr/bin/sudo "$TRUETREE" --sources --nocolor -o "$OUTPUT/TrueTree/TrueTree_Data/TrueTree-Sources.txt" > /dev/null 2>&1
+	/usr/bin/sudo "$TRUETREE" --sources -o "$OUTPUT/TrueTree/TrueTree_Data/Colored/TrueTree-Sources-colored.txt" > /dev/null 2>&1
+fi
+
+# Creating Archive File (ZIP)
+if [[ -d "$OUTPUT/TrueTree/TrueTree_Data" ]]; then
+	if [[ -n "$( /bin/ls -A "$OUTPUT/TrueTree/TrueTree_Data" )" ]]; then
+		echo "[Info]  Compressing TrueTree Database (.zip) ..."
+		cd "$OUTPUT/TrueTree"
+		/usr/bin/zip -q -e -r -P "$ARCHIVE_PASSWORD" "TrueTree_$SerialNumber.zip" TrueTree_Data
+		cd "$SCRIPT_DIR"
+	fi
+fi
+
+# Archive Name
+ARCHIVE=$(/bin/ls -l "$OUTPUT/TrueTree" | /usr/bin/awk '{ print $9 }' | /usr/bin/grep "^TrueTree_.*.zip$")
+echo "[Info]  Archive Name: $ARCHIVE"
+
+# Archive Size
+FILE="$OUTPUT/TrueTree/$ARCHIVE"
+BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
+FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
+echo "[Info]  Archive Size: $FILESIZE"
+
+# MD5 Calculation
+if [[ -s $(/bin/ls -A "$FILE") ]]; then
+	echo "[Info]  Calculating MD5 checksum of TrueTree Archive ..."
+	MD5=$(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
+	echo "[Info]  MD5 Hash: $MD5"
+fi
+
+# Create Time
+BIRTH=$(TZ= /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+echo "[Info]  Create Time: $BIRTH UTC"
+
+# Last Modified Time
+MODIFY=$(TZ= /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+echo "[Info]  Last Modified Time: $MODIFY UTC"
+
+# Cleaning up
+FOLDER="$OUTPUT/TrueTree/TrueTree_Data"
+if [[ -d "$FOLDER" ]]; then
+	/bin/rm -rf "$FOLDER"
+fi
+
+# Stats
+END_TRUETREE=$(/bin/date +%s)
+ELAPSED_TIME_TRUETREE=$(($END_TRUETREE - $START_TRUETREE))
+echo "TrueTree Snapshot Collection: $(($ELAPSED_TIME_TRUETREE/60)) min $(($ELAPSED_TIME_TRUETREE%60)) sec" >> "$OUTPUT"/Stats.txt
+
+}
+
+#############################################################
+#############################################################
+
 Footer() {
 
 echo ""
@@ -2129,7 +2523,7 @@ LoggedInUser=$(/usr/bin/stat -f %Su /dev/console)
 
 # Main
 
-case $1 in
+case "${1}" in
 	-a|--analyze)
 	{
 	Header
@@ -2223,6 +2617,16 @@ case $1 in
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
 	;;
+	-p|--processes)
+	{
+	Header
+	Check_Admin
+	Output
+	BasicInfo
+	TrueTree
+	Footer
+	} 2>&1 | /usr/bin/tee screenlog-draft.txt
+	;;
 	-r|--recentitems)
 	{
 	Header
@@ -2259,6 +2663,7 @@ case $1 in
 	RecentItems
 	Sysdiagnose
 	Spotlight
+	TrueTree
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
 	;;
@@ -2277,6 +2682,7 @@ case $1 in
 	Usage2
 	;;
 esac
+exit 0
 
 #############################################################
 #############################################################

@@ -2,6 +2,20 @@
 
 All changes to macos-collector will be documented in this file. 
 
+## [1.5.0] - 2026-03-09
+### Added
+- TrueTree Snapshot Collection
+- System Info: Microsoft AutoUpdate (MAU)
+- System Info: Collecting MDE Quarantine Files
+- System Info: Collecting MDE Diagnostic Logs
+- System Info: MDE Network Connectivity
+- System Info: Collecting Microsoft Intune Logs
+- System Info: Apple Remote Desktop Artifacts
+- Password-Protected ZIP Files (PKZIP 2.0) &#8594; PW: IncidentResponse
+
+## Fixed
+- Minor fixes and improvements
+
 ## [1.4.0] - 2026-01-29
 ### Added
 - System Information Collection

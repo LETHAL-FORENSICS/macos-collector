@@ -11,6 +11,9 @@ Download the latest version of **macos-collector** from the [Releases](https://g
 > [!NOTE]
 > macos-collector includes all external tools by default.  
 
+> [!NOTE]
+`Default Archive Password:` IncidentResponse, `Quarantine Files Password:` infected  
+
 > [!TIP]
 > macos-collector will write the output directly to the current working directory. It is recommended to run the tool from a remote location or external device (such as a USB flash drive) to reduce writing to the actual disk on the target endpoint.  
 
@@ -46,7 +49,7 @@ sudo bash macos-collector.sh --triage
 
 </br>
 
-![Help-Message](https://github.com/user-attachments/assets/3029ac56-5f6c-4c24-ae05-3d29f2a165b0)  
+![Help-Message](https://github.com/user-attachments/assets/83e6d18e-55e8-4d4a-a924-58ef630feafd)  
 **Fig 1:** Help Message  
 
 ![Aftermath-Collection](https://github.com/user-attachments/assets/27d73f2d-c139-446d-b1b6-20f0d4a52fb8)  
@@ -82,6 +85,9 @@ sudo bash macos-collector.sh --triage
 ![Recent-Items](https://github.com/user-attachments/assets/81d8f279-68e0-4af5-ae18-4c06dddec8e7)  
 **Fig 12:** Recent Items Collection  
 
+![TrueTree](https://github.com/user-attachments/assets/78137d73-362f-4cbf-81c7-b66ea3b31549)  
+**Fig 13:** TrueTree Snapshot Collection  
+
 ## Dependencies
 Aftermath v2.3.0 (2025-09-24)  
 MD5: A0668EB91650513F40CE8753A277E0E0  
@@ -94,6 +100,12 @@ MD5: 91582848022442C8A6D71ED28A10A11B
 SHA1: FDAEB856E44563E7C543F775A238D590A3A4B2EC  
 SHA256: A7836AF427187D02511170606232E4509C3A41351F5BBC3BAFAFE2F0227CC2DE  
 https://objective-see.com/products/knockknock.html  
+
+TrueTree v0.8 (2024-08-23)  
+MD5: 7D4ACAA589846B9D31FBC911D1E4898F
+SHA1: BF701DABCFBD816425FB827B75B011773D9283AD
+SHA256: C6CE708937EFAC833DA6A0B6F4FC1A91EB38F8D456317BCF68B27CF57CB581C6
+https://github.com/themittenmac/TrueTree  
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.  
