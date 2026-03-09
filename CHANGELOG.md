@@ -6,7 +6,7 @@ All changes to macos-collector will be documented in this file.
 ### Added
 - TrueTree Snapshot Collection
 - System Info: Microsoft AutoUpdate (MAU)
-- System Info: Collecting MDE Quarantine Files
+- System Info: Collecting MDE Quarantine Files &#8594; PW: infected
 - System Info: Collecting MDE Diagnostic Logs
 - System Info: MDE Network Connectivity
 - System Info: Collecting Microsoft Intune Logs
