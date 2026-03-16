@@ -6,7 +6,7 @@
 # @copyright:   Copyright (c) 2026 Martin Willing. All rights reserved. Licensed under the MIT license.
 # @contact:     Any feedback or suggestions are always welcome and much appreciated - mwilling@lethal-forensics.com
 # @url:         https://lethal-forensics.com/
-# @date:        2026-03-09
+# @date:        2026-03-16
 #
 #
 # ██╗     ███████╗████████╗██╗  ██╗ █████╗ ██╗      ███████╗ ██████╗ ██████╗ ███████╗███╗   ██╗███████╗██╗ ██████╗███████╗
@@ -1982,7 +1982,6 @@ fi
 # KnockKnock
 FILE="$KNOCKKNOCK/Contents/MacOS/KnockKnock"
 if [[ -f "$FILE" ]]; then
-	echo "[Info]  Scanning Live System w/ KnockKnock ..."
 	/bin/mkdir -p "$OUTPUT/KnockKnock/KnockKnock_Data"
 	cd "$SCRIPT_DIR/tools/KnockKnock/"
 	DATE=$(/bin/date -u +"%Y-%m-%d")
@@ -1991,7 +1990,8 @@ if [[ -f "$FILE" ]]; then
 	if [[ $VIRUSTOTAL == "YOUR_API_KEY" ]]; then
 
 		# Launch KnockKnock /wo VirusTotal
-		/usr/bin/sudo ./KnockKnock.app/Contents/MacOS/KnockKnock -whosthere -verbose > "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE-draft.json"
+		echo "[Info]  Scanning Live System w/ KnockKnock ..."
+		/usr/bin/sudo ./KnockKnock.app/Contents/MacOS/KnockKnock -whosthere -verbose > "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE-verbose.json"
 
 	else
 
@@ -2004,7 +2004,7 @@ if [[ -f "$FILE" ]]; then
 
 		# Launch KnockKnock /w VirusTotal
 		echo "[Info]  Scanning Live System w/ KnockKnock [approx. 1-2 min] ..."
-		/usr/bin/sudo ./KnockKnock.app/Contents/MacOS/KnockKnock -whosthere -verbose -key "$VIRUSTOTAL" > "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE-draft.json"
+		/usr/bin/sudo ./KnockKnock.app/Contents/MacOS/KnockKnock -whosthere -verbose -key "$VIRUSTOTAL" > "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE-verbose.json"
 	fi
 
 	cd $SCRIPT_DIR
@@ -2014,13 +2014,13 @@ else
 fi
 
 # Output
-if [[ -s "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE-draft.json" ]]; then
+if [[ -s "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE-verbose.json" ]]; then
 
 	# JSON
-	/bin/cat "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE-draft.json" | /usr/bin/tail -n 1 > "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE.json"
+	/bin/cat "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE-verbose.json" | /usr/bin/tail -n 1 > "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE.json"
 
 	# TXT
-	/bin/cat "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE-draft.json" | /usr/bin/sed '$d' > "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock.txt"
+	/bin/cat "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE-verbose.json" | /usr/bin/sed '$d' > "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock.txt"
 fi
 
 # File Size
