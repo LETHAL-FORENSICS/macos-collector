@@ -2,6 +2,24 @@
 
 All changes to macos-collector will be documented in this file. 
 
+## [1.6.0] - 2026-04-13
+### Added
+- Notification Center Database File Collection
+- Secure Archive Container (7-Zip) &#8594; PW: IncidentResponse
+- System Info: XProtect Version Check
+- System Info: Terminal Information (ClickFix Attacks)
+- SystemInfo: Installed Browsers
+- System Info: System Accounts
+- System Info: User Details
+- SystemInfo: Lockdown Files (Pairing Records) 
+- SystemInfo: iOS Backups
+- SystemInfo: Time Machine
+- SystemInfo: Apple Intelligence
+- BTM Dump File: User Properties
+
+### Fixed
+- Minor fixes and improvements
+
 ## [1.5.1] - 2026-03-16
 ### Fixed
 - Minor fixes and improvements
