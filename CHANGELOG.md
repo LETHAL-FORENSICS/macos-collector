@@ -2,6 +2,22 @@
 
 All changes to macos-collector will be documented in this file. 
 
+## [1.6.1] - 2026-07-20
+### Added
+- Biome Data Collection (App.MenuItem)
+- macOS 27 Golden Gate Support
+- SystemInfo: System Firmware Version
+- SystemInfo: Security Policy
+- SystemInfo: LimaCharlie SecOps Cloud Platform (SCP)
+
+### Changed
+- 7-Zip v26.00 &#8594; 7-Zip v26.02
+- Command-Line Parameters &#8594;  Long form only
+
+### Fixed
+- Code Quality: ShellCheck Linter
+- Minor fixes and improvements
+
 ## [1.6.0] - 2026-04-13
 ### Added
 - Notification Center Database File Collection

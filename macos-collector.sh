@@ -6,7 +6,7 @@
 # @copyright:   Copyright (c) 2026 Martin Willing. All rights reserved. Licensed under the MIT license.
 # @contact:     Any feedback or suggestions are always welcome and much appreciated - mwilling@lethal-forensics.com
 # @url:         https://lethal-forensics.com/
-# @date:        2026-04-11
+# @date:        2026-07-20
 #
 #
 # ██╗     ███████╗████████╗██╗  ██╗ █████╗ ██╗      ███████╗ ██████╗ ██████╗ ███████╗███╗   ██╗███████╗██╗ ██████╗███████╗
@@ -58,7 +58,7 @@
 #
 # Dependencies:
 #
-# 7-Zip v26.00 Console Version (2026-02-12)
+# 7-Zip v26.02 (2026-06-25)
 # https://www.7-zip.org/download.html
 #
 # Aftermath v2.3.0 (2025-09-24)
@@ -71,7 +71,7 @@
 # https://github.com/themittenmac/TrueTree
 #
 #
-# Tested on macOS Tahoe 26.4
+# Tested on macOS Tahoe 26.5.2
 #
 #############################################################
 #############################################################
@@ -87,7 +87,7 @@ PASSWORD="infected" # Quarantine Files
 
 # 7-Zip
 SEVENZIP="$SCRIPT_DIR/tools/7-Zip/7zz"
-MD5_7ZZ="DCACF43BE9AC2034815CFEA7E8C89803"
+MD5_7ZZ="CBBA6B6C2F2C37EAEE2167BF847570BB"
 
 # Aftermath
 AFTERMATH="$SCRIPT_DIR/tools/Aftermath/aftermath"
@@ -132,21 +132,22 @@ Usage() {
 echo "Usage: $0 [OPTION]"
 echo ""
 echo "Options:"
-echo "-c / --collect         Scan and collect forensic artifacts w/ Aftermath (Step #1)"
-echo "-a / --analyze         Analyze previous collected Aftermath archive (Step #2)"
-echo "-b / --btm             Collect BTM Dump File (Background Task Management)"
-echo "-d / --ds_store        Collect .DS_Store Files"
-echo "-f / --fsevents        Collect FSEvents Data"
-echo "-i / --info            Collect System Information"
-echo "-k / --knockknock      Scan Live System w/ KnockKnock (Persistence)"
-echo "-l / --logs            Collect Apple Unified Logs (AUL)"
-echo "-m / --metadata        Collect Spotlight Database (Desktop Search Engine)"
-echo "-n / --notifications   Collect Notification Center Database Files"
-echo "-p / --processes       Collect Snapshot of Running Processes w/ TrueTree"
-echo "-r / --recentitems     Collect Recent Items (MRU)"
-echo "-s / --sysdiagnose     Collect Sysdiagnose Logs"
-echo "-t / --triage          Collect ALL supported macOS Forensic Artifacts"
-echo "-h / --help            Show this help message"
+echo "--collect         Scan and collect forensic artifacts w/ Aftermath (Step #1)"
+echo "--analyze         Analyze previous collected Aftermath archive (Step #2)"
+echo "--biome           Collect Biome Data"
+echo "--btm             Collect BTM Dump File (Background Task Management)"
+echo "--ds_store        Collect .DS_Store Files"
+echo "--fsevents        Collect FSEvents Data"
+echo "--info            Collect System Information"
+echo "--knockknock      Scan Live System w/ KnockKnock (Persistence)"
+echo "--logs            Collect Apple Unified Logs (AUL)"
+echo "--metadata        Collect Spotlight Database (Desktop Search Engine)"
+echo "--notifications   Collect Notification Center Database Files"
+echo "--processes       Collect Snapshot of Running Processes w/ TrueTree"
+echo "--recentitems     Collect Recent Items (MRU)"
+echo "--sysdiagnose     Collect Sysdiagnose Logs"
+echo "--triage          Collect ALL supported macOS Forensic Artifacts"
+echo "--help            Show this help message"
 echo ""
 exit 0
 }
@@ -290,15 +291,16 @@ else
 	["14"]="Sonoma"
 	["15"]="Sequoia"
 	["26"]="Tahoe"
+	["27"]="Golden Gate"
 	)
 fi
 
-# Check if the number extracted is in array
+# check if the number extracted is in array
 if [[ -n "${os_codename[$os_num]}" ]]
 then
-	echo "[Info]  OS Codename: macOS "${os_codename[$os_num]}""
+    echo "[info]  OS Codename: macOS ${os_codename[$os_num]}"
 else
-	echo "[Info]  OS Codename: Unknown"
+    echo "[info]  OS Codename: Unknown"
 fi
 
 # OS Version
@@ -316,7 +318,7 @@ echo "[Info]  Uptime: $UPTIME"
 
 # BootTime (UTC)
 BootTime=$(/usr/sbin/sysctl -n kern.boottime | /usr/bin/awk -F'[ ,]' '{print $4}')
-echo -n "[Info]  Boot Time: "; /bin/date -ur $(($BootTime)) +"%Y-%m-%d %H:%M:%S UTC"
+echo -n "[Info]  Boot Time: "; /bin/date -ur "$BootTime" +"%Y-%m-%d %H:%M:%S UTC"
 
 # Logged In User
 LoggedInUser=$(/usr/bin/stat -f %Su /dev/console)
@@ -448,7 +450,7 @@ fi
 
 # Gatekeeper Rules
 /bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/Gatekeeper"
-/usr/bin/sudo /usr/sbin/spctl --list > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/Gatekeeper/Gatekeeper_Rules.txt" 2>&1
+/usr/sbin/spctl --list 2>&1 | /usr/bin/sudo /usr/bin/tee "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/Gatekeeper/Gatekeeper_Rules.txt" > /dev/null
 
 # Gatekeeper Database (Primary Location)
 GatekeeperDatabase="/private/var/protected/xprotect/XProtect.bundle/Contents/Resources/gk.db" # macOS Sequoia (2024)
@@ -503,7 +505,7 @@ XProtectCheck=$(/usr/bin/sudo /usr/bin/xprotect check)
 echo "$XProtectCheck" > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/XProtect/XProtect_Check.txt" 2>&1
 
 # XProtect Version Check (Current macOS Version only --> Check 'SystemInfo/SystemInfo_Data/SoftwareUpdate/softwareupdate_security.txt' for recommended OS updates (incl. XProtectPlistConfigData)
-InstalledVersion=$(echo "$XProtectVersion" | /usr/bin/sed -e 's/Version: //g' | /usr/bin/sed -e 's/ Installed: .*//g')
+#InstalledVersion=$(echo "$XProtectVersion" | /usr/bin/sed -e 's/Version: //g' | /usr/bin/sed -e 's/ Installed: .*//g')
 OnlineVersion=$(echo "$XProtectCheck" | /usr/bin/sed -e 's/.*version: //g')
 if [[ $XProtectVersion < $OnlineVersion ]]; then
 	echo -e "\033[93m[ALERT] XProtect Update available! (XProtect Version: $OnlineVersion)\033[0m"
@@ -516,7 +518,7 @@ fi
 # /usr/bin/sudo /usr/bin/xprotect update
 
 # Display XProtect Logs
-/usr/bin/sudo /usr/bin/xprotect logs > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/XProtect/XProtect_Logs.txt"
+/usr/bin/xprotect logs | /usr/bin/sudo /usr/bin/tee "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/XProtect/XProtect_Logs.txt" > /dev/null
 
 # XProtect (Primary Location)
 FILE="/private/var/protected/xprotect/XProtect.bundle/Contents/Info.plist" # macOS Sequoia (2024)
@@ -583,6 +585,65 @@ fi
 # Standard Scan --> Interval: 86400 (24 hours) --> AllowBattery: false
 # Slow Scan     --> Interval: 604800 (7 days)  --> AllowBattery: false
 
+# Security Policy
+# The Secure Boot hardware security policy (managed via the LocalPolicy file) is a cryptographic security architecture introduced by Apple for Macs with Apple Silicon (M-series chips).
+# 
+if [ "$(/usr/bin/uname -m)" = "arm64" ]; then
+	SecurityStatus=$(/usr/bin/sudo /usr/bin/bputil -d 2> /dev/null) # Boot Policy Utility (Apple Silicon)
+	echo "$SecurityStatus" > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/Security-Policy.txt"
+	
+	# Security Mode
+	SecurityMode=$(echo "$SecurityStatus" | /usr/bin/grep  "Security Mode:" | /usr/bin/sed -e 's/.*Security Mode: //g' | /usr/bin/sed 's/^[[:space:]]*//' | /usr/bin/awk '{print $1}')
+
+	# Full Security (Default)
+	# Verification: The Mac will only boot an operating system currently signed by Apple.
+	# Updates: If Apple stops signing a specific old version of macOS, you cannot install or boot it.
+	# Kernel Extensions: Third-party kernel extensions (Kexts) are strictly blocked.
+	# Purpose: Provides maximum protection against malware, physical tampering, and unauthorized system modifications.
+	if echo "$SecurityMode" | /usr/bin/grep -q "Full"; then
+		echo -e "\033[32m[ALERT] Security Mode: $SecurityMode\033[0m"
+	fi
+
+	# Reduced Security
+	# Verification: The Mac still verifies the operating system, but it accepts older, localized signatures that Apple no longer actively signs online.
+	# Extensions: It allows the user to approve third-party kernel extensions (Kexts), which are necessary for certain deep-level software like advanced audio drivers, virtualization software, or enterprise security tools.
+	# MDM Support: Allows Mobile Device Management (MDM) servers to manage software updates remotely.
+	if echo "$SecurityMode" | /usr/bin/grep -q "Reduced"; then
+		echo -e "\033[93m[ALERT] Security Mode: $SecurityMode\033[0m"
+	fi
+
+	# Permissive Security
+	# Verification: Disables regular integrity checks on the operating system.
+	# Customization: Allows you to boot entirely custom operating system kernels (such as Linux) or turn off System Integrity Protection (SIP).
+	# Risk: Leaving a machine in this state dramatically increases vulnerability to malware, as the underlying hardware trust mechanisms are deactivated.
+	if echo "$SecurityMode" | /usr/bin/grep -q "Permissive"; then
+		echo -e "\033[91m[ALERT] Security Mode: $SecurityMode\033[0m"
+	fi
+
+	# Security Level Flags (Security Mode)
+	# Full: The default state. Every piece of code from the bootloader to the operating system must be cryptographic and signed by Apple. Third-party kernel extensions are strictly blocked.
+	# Reduced: Allows the system to run older versions of macOS or load third-party kernel extensions, provided they are manually approved by an administrator in Recovery Mode.
+	# Permissive: Disables standard signature verification entirely. This is used by developers building custom operating systems (like Linux for Apple Silicon).
+
+	# 3rd-Party Kernel Extensions
+	# Note: Apple disables third-party kexts by default to protect the stability and security of the operating system.
+	Kexts=$(echo "$SecurityStatus" | /usr/bin/grep  "3rd Party Kexts Status:" | /usr/bin/sed -e 's/.*3rd Party Kexts Status: //g' | /usr/bin/sed 's/^[[:space:]]*//' | /usr/bin/awk '{print $1}')
+	
+	# Enabled
+	if echo "$Kexts" | /usr/bin/grep -q "Enabled"; then
+		echo -e "\033[93m[ALERT] 3rd-Party Kernel Extensions: Allowed\033[0m"
+	fi
+
+	# Disabled
+	if echo "$Kexts" | /usr/bin/grep -q "Disabled"; then
+		echo -e "\033[32m[Info]  3rd-Party Kernel Extensions: Blocked\033[0m"
+	fi
+fi
+
+# System Firmware Version
+Firmware=$(/usr/sbin/system_profiler SPHardwareDataType 2> /dev/null | /usr/bin/grep "System Firmware Version" | /usr/bin/sed -e 's/.*System Firmware Version: //g')
+echo "$Firmware" > "$OUTPUT/SystemInfo/SystemInfo_Data/SecurityInfo/Firmware.txt"
+
 # Install Date(s)
 
 # Original Install Date 
@@ -636,7 +697,7 @@ echo "$UtcFormatted" >> "$OUTPUT/SystemInfo/SystemInfo_Data/OS/Timestamp.txt"
 
 # Preferred Languages
 LoggedInUser=$(/usr/bin/stat -f %Su /dev/console)
-AppleLanguages=$(/usr/bin/sudo -u $LoggedInUser defaults read -g AppleLanguages)
+AppleLanguages=$(/usr/bin/sudo -u "$LoggedInUser" defaults read -g AppleLanguages)
 echo "$AppleLanguages" | /usr/bin/grep -o '"[^"]\+"' | /usr/bin/tr -d '"' | /usr/bin/sort > "$OUTPUT"/SystemInfo/SystemInfo_Data/OS/PreferredLanguages.txt
 
 # System Language
@@ -759,8 +820,8 @@ fi
 # Note: Apple Silicon Macs don't support the old firmwarepasswd utility (Firmware Password Utility).
 PLATFORM=$(/usr/bin/uname -m)
 if [[ $PLATFORM = "x86_64" ]]; then
-	FirmwarePassword=$(/usr/bin/sudo /usr/sbin/firmwarepasswd -check 2 > "$OUTPUT/SystemInfo/SystemInfo_Data/Firmware-Password.txt")
-	echo $FirmwarePassword >> "$OUTPUT"/SystemInfo/SystemInfo_Data/Firmware-Password.txt
+	FirmwarePassword=$(/usr/bin/sudo /usr/sbin/firmwarepasswd -check 2)
+	echo "$FirmwarePassword" > "$OUTPUT"/SystemInfo/SystemInfo_Data/Firmware-Password.txt
 	if echo "$FirmwarePassword" | /usr/bin/grep -q "Password Enabled: Yes";then
 		echo "[Info]  Firmware Password Enabled: Yes"
 	else
@@ -890,7 +951,7 @@ SPBluetoothDataType=$(/usr/sbin/system_profiler SPBluetoothDataType)
 
 echo "$SPBluetoothDataType" > "$OUTPUT/SystemInfo/SystemInfo_Data/Bluetooth/Bluetooth.txt"
 
-if echo $SPBluetoothDataType | /usr/bin/grep -A 2 "Bluetooth Controller:" | /usr/bin/grep -q "State: On"; then
+if echo "$SPBluetoothDataType" | /usr/bin/grep -A 2 "Bluetooth Controller:" | /usr/bin/grep -q "State: On"; then
 	echo "[Info]  Bluetooth is ON." > "$OUTPUT/SystemInfo/SystemInfo_Data/Bluetooth/Bluetooth_Status.txt"
 else
 	echo "[Info]  Bluetooth is OFF." > "$OUTPUT/SystemInfo/SystemInfo_Data/Bluetooth/Bluetooth_Status.txt"
@@ -913,7 +974,7 @@ fi
 SPAirPortDataType=$(/usr/sbin/system_profiler SPAirPortDataType)
 echo "$SPAirPortDataType" > "$OUTPUT/SystemInfo/SystemInfo_Data/Wi-Fi/SPAirPortDataType.txt"
 
-if echo $SPAirPortDataType | /usr/bin/grep -q "State: Connected"; then
+if echo "$SPAirPortDataType" | /usr/bin/grep -q "State: Connected"; then
 	echo "[Info]  Wi-Fi is ON." > "$OUTPUT/SystemInfo/SystemInfo_Data/Wi-Fi/Wi-Fi_Status.txt" # Status: Connected
 else
 	echo "[Info]  Wi-Fi is OFF." > "$OUTPUT/SystemInfo/SystemInfo_Data/Wi-Fi/Wi-Fi_Status.txt" # Status: Off
@@ -1046,15 +1107,15 @@ Data_Volume_Id=$(/usr/sbin/diskutil list internal | /usr/bin/awk '/APFS Volume D
 echo "$Data_Volume_Id" > "$OUTPUT/SystemInfo/SystemInfo_Data/DiskInfo/DataVolume/Identifier.txt"
 
 # Data Volume - Disk Space (Bytes)
-Data_Volume_Total=$(/usr/sbin/diskutil info $Data_Volume_Id | /usr/bin/awk -F'[(|B]' '/Container Total Space:/{print $3}')
-Data_Volume_Free=$(/usr/sbin/diskutil info $Data_Volume_Id | /usr/bin/awk -F'[(|B]' '/Container Free Space:/{print $3}')
-Data_Volume_Used=$(/usr/sbin/diskutil info $Data_Volume_Id | /usr/bin/awk -F'[(|B]' '/Volume Used Space:/{print $3}')
+Data_Volume_Total=$(/usr/sbin/diskutil info "$Data_Volume_Id" | /usr/bin/awk -F'[(|B]' '/Container Total Space:/{print $3}')
+Data_Volume_Free=$(/usr/sbin/diskutil info "$Data_Volume_Id" | /usr/bin/awk -F'[(|B]' '/Container Free Space:/{print $3}')
+Data_Volume_Used=$(/usr/sbin/diskutil info "$Data_Volume_Id" | /usr/bin/awk -F'[(|B]' '/Volume Used Space:/{print $3}')
 
 Data_Volume_Free_Percentage=$(/bin/echo "scale=3; 100 - $Data_Volume_Used / $Data_Volume_Total * 100" | /usr/bin/bc)
-FREEPERCENT=$(echo "$(printf "%.1f\\n" ${Data_Volume_Free_Percentage})%")
+FREEPERCENT=$(printf "%.1f%%\n" "${Data_Volume_Free_Percentage}")
 
 Data_Volume_Used_Percentage=$(/bin/echo "scale=3; 100 - $Data_Volume_Free / $Data_Volume_Total * 100" | /usr/bin/bc)
-USEDPERCENT=$(echo "$(printf "%.1f\\n" ${Data_Volume_Used_Percentage})%")
+USEDPERCENT=$(printf "%.1f%%\n" "${Data_Volume_Used_Percentage}")
 
 # Data Volume - Total Space
 TOTALSPACE=$(echo "$Data_Volume_Total" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
@@ -1185,14 +1246,14 @@ SOURCE="/private/var/db/RemoteManagement/"
 DESTINATION="$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/RemoteManagement_Data"
 if [[ -d "$SOURCE" ]] && [[ -n "$(/bin/ls -A "$SOURCE")" ]]; then
 	/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/RemoteManagement_Data"
-	/usr/bin/sudo /usr/bin/rsync -av "$SOURCE" "$DESTINATION" >> "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/RemoteManagement_Collection.txt"
+	/usr/bin/rsync -av "$SOURCE" "$DESTINATION" | /usr/bin/sudo /usr/bin/tee -a "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/RemoteManagement_Collection.txt" > /dev/null
 fi
 
 # Creating Archive File (ZIP)
 if [[ -d "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing/RemoteManagement_Data" ]]; then
-	cd "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing"
-	/usr/bin/zip -q -r "RemoteManagement_$SerialNumber.zip" RemoteManagement_Data
-	cd "$SCRIPT_DIR"
+    cd "$OUTPUT/SystemInfo/SystemInfo_Data/Sharing" || exit 1
+    /usr/bin/zip -q -r "RemoteManagement_$SerialNumber.zip" RemoteManagement_Data
+    cd "$SCRIPT_DIR" || exit 1
 fi
 
 # Cleaning up
@@ -1220,7 +1281,7 @@ fi
 # User Details (Attributes)
 for UserName in $(/usr/bin/dscl . list /Users UniqueID | /usr/bin/awk '$2 > 500 {print $1}')
 do
-	/usr/bin/dscl . -read /Users/$UserName > "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/UserDetails_$UserName.txt" 2>&1
+	/usr/bin/dscl . -read /Users/"$UserName" > "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/UserDetails_$UserName.txt" 2>&1
 done
 
 # User Accounts
@@ -1253,13 +1314,13 @@ admin_list=()
 
 for UserName in $(/usr/bin/dscl . list /Users UniqueID | /usr/bin/awk '$2 > 500 {print $1}')
 do
-	if [[ $(/usr/sbin/dseditgroup -o checkmember -m "$UserName" admin | /usr/bin/grep "^yes") ]]; then
+	if /usr/sbin/dseditgroup -o checkmember -m "$UserName" admin | /usr/bin/grep -q "^yes"; then
 		admin_list+=("${UserName}")
 	fi
 done
 
-if [[ "${admin_list[@]}" != "" ]]; then
-	echo "${admin_list[@]}" > "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/Local-Administrators.txt"
+if [[ ${#admin_list[@]} -gt 0 ]]; then
+	printf "%s\n" "${admin_list[@]}" > "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/Local-Administrators.txt"
 else
 	echo "None" > "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/Local-Administrators.txt"
 fi
@@ -1290,10 +1351,12 @@ do
 		IsManaged=$(/usr/libexec/PlistBuddy -c "print :Accounts:0:isManagedAppleID" "/Users/$UserName/Library/Preferences/MobileMeAccounts.plist")
 		MobileDocuments=$(/usr/libexec/PlistBuddy -c "print :Accounts:0:Services" "/Users/$UserName/Library/Preferences/MobileMeAccounts.plist" | grep -A1 -B6 "Name = MOBILE_DOCUMENTS")
 		CloudDesktop=$(/usr/bin/sudo /usr/bin/xattr -p com.apple.icloud.desktop "/Users/$UserName/Desktop" 2> /dev/null)
-		echo "Name:          $UserName" > "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/Accounts.txt"
-		echo "AccountID:     $AccountID" >> "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/Accounts.txt"
-		echo "EmailVerified: $EmailVerified" >> "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/Accounts.txt"
-		echo "IsManaged:     $IsManaged" >> "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/Accounts.txt"
+		{
+			echo "Name:          $UserName"
+			echo "AccountID:     $AccountID"
+			echo "EmailVerified: $EmailVerified"
+			echo "IsManaged:     $IsManaged"
+		} > "$OUTPUT/SystemInfo/SystemInfo_Data/UserInfo/Accounts.txt"
 
 		# iCloud Drive Sync
 		if echo "$MobileDocuments" | grep -q "Enabled = false";then
@@ -1314,7 +1377,7 @@ done
 # System Settings > [Apple Account] > iCloud > iCloud Drive
 
 # Login Window
-/usr/bin/sudo /usr/bin/defaults read /Library/Preferences/com.apple.loginwindow > "$OUTPUT/SystemInfo/SystemInfo_Data/OS/LoginWindow.txt"
+/usr/bin/sudo /usr/bin/defaults read /Library/Preferences/com.apple.loginwindow | /usr/bin/sudo /usr/bin/tee "$OUTPUT/SystemInfo/SystemInfo_Data/OS/LoginWindow.txt" > /dev/null
 
 # Collecting Shell History and Profile Information
 for UserName in $(/usr/bin/dscl . list /Users UniqueID | /usr/bin/awk '$2 > 500 {print $1}')
@@ -1327,8 +1390,8 @@ do
 	FILE="/Users/$UserName/.zsh_history"
 	if [[ -f "$FILE" ]]; then
 		/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Zsh"
-		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Zsh/"$UserName"_.zsh_history"
-		/bin/cat "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Zsh/"$UserName"_history.txt"
+		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Zsh/${UserName}_.zsh_history"
+		/bin/cat "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Zsh/${UserName}_history.txt"
 	fi
 
 	# Terminal Sessions (Zsh)
@@ -1342,35 +1405,35 @@ do
 	FILE="/Users/$UserName/.zshenv"
 	if [[ -f "$FILE" ]]; then
 		/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Zsh"
-		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Zsh/"$UserName"_.zshenv"
+		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Zsh/${UserName}_.zshenv"
 	fi
 
 	# .zprofile (Login Shells only) --> Zsh Profile
 	FILE="/Users/$UserName/.zprofile"
 	if [[ -f "$FILE" ]]; then
 		/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Zsh"
-		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Zsh/"$UserName"_.zprofile"
+		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Zsh/${UserName}_.zprofile"
 	fi
 
 	# .zshrc (Interactive Shells only) --> Zsh Profile
 	FILE="/Users/$UserName/.zshrc"
 	if [[ -f "$FILE" ]]; then
 		/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Zsh"
-		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Zsh/"$UserName"_.zshrc"
+		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Zsh/${UserName}_.zshrc"
 	fi
 
 	# .zlogin --> Login Shell
 	FILE="/Users/$UserName/.zlogin"
 	if [[ -f "$FILE" ]]; then
 		/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Zsh"
-		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Zsh/"$UserName"_.zlogin"
+		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Zsh/${UserName}_.zlogin"
 	fi
 
 	# .zlogout --> when the shell exits
 	FILE="/Users/$UserName/.zlogout"
 	if [[ -f "$FILE" ]]; then
 		/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Zsh"
-		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Zsh/"$UserName"_.zlogout"
+		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Zsh/${UserName}_.zlogout"
 	fi
 
 	# Bash
@@ -1379,28 +1442,28 @@ do
 	FILE="/Users/$UserName/.bash_history"
 	if [[ -f "$FILE" ]]; then
 		/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Bash"
-		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Bash/"$UserName"_.bash_history"
+		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Bash/${UserName}_.bash_history"
 	fi
 
 	# .bash_profile --> Bash Profile
 	FILE="/Users/$UserName/.bash_profile"
 	if [[ -f "$FILE" ]]; then
 		/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Bash"
-		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Bash/"$UserName"_.bash_profile"
+		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Bash/${UserName}_.bash_profile"
 	fi
 
 	# .bashrc (Interactive Shells only) --> Bash Profile
 	FILE="/Users/$UserName/.bashrc"
 	if [[ -f "$FILE" ]]; then
 		/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Bash"
-		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Bash/"$UserName"_.bashrc"
+		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Bash/${UserName}_.bashrc"
 	fi
 
 	# .bash_logout --> when the shell exits
 	FILE="/Users/$UserName/.bash_logout"
 	if [[ -f "$FILE" ]]; then
 		/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Bash"
-		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Bash/"$UserName"_.bash_logout"
+		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Shell/$UserName/Bash/${UserName}_.bash_logout"
 	fi
 done
 
@@ -1505,7 +1568,7 @@ echo "$Gateway" > "$OUTPUT/SystemInfo/SystemInfo_Data/Network/Default-Gateway.tx
 /usr/sbin/ndp -an > "$OUTPUT/SystemInfo/SystemInfo_Data/Network/NDP-Table.txt" 2>&1 # IPv6
 
 # List All Active Network Connections
-/usr/bin/sudo /usr/sbin/lsof -i > "$OUTPUT/SystemInfo/SystemInfo_Data/Network/Active-Network-Connections.txt" 2>&1
+/usr/bin/sudo /usr/sbin/lsof -i | /usr/bin/sudo /usr/bin/tee "$OUTPUT/SystemInfo/SystemInfo_Data/Network/Active-Network-Connections.txt" > /dev/null 2>&1
 
 # Installed Applications (Primary System Applications --> accessible to all users)
 /bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo"
@@ -1516,7 +1579,7 @@ echo "$InstalledApps" > "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/Installed-Ap
 echo "\"Name\",\"FullPath\",\"MD5\",\"SHA1\",\"SHA256\",\"Filesize\",\"Bytes\",\"Version\",\"BundleIdentifier\",\"Copyright\",\"UseCount\",\"LastUsedDate\",\"DateAdded\",\"ContentCreationDate\",\"ContentModificationDate\",\"SignatureStatus\",\"SignatureOrigin\",\"SignatureSource\"" > "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/Installed-Apps.csv"
 
 # Data
-while read Application
+while read -r Application
 do
 	Name=$(/usr/bin/basename "$Application")
 
@@ -1533,7 +1596,7 @@ do
 		else
 			# Guessing Binary Name
 			BaseName="$Name"
-			Binary=$(/usr/bin/basename ${BaseName%.*})
+			Binary=$(/usr/bin/basename "${BaseName%.*}")
 			Executable="$Application/$Binary"
 		fi
 	fi
@@ -1568,7 +1631,7 @@ do
 	Origin=$(echo "$Signature" | /usr/bin/grep "origin=" | /usr/bin/sed -e 's/origin=//g')
 	Source=$(echo "$Signature" | /usr/bin/grep "source=" | /usr/bin/sed -e 's/source=//g')
 
-	echo \"$Name\",\"$Application\",\"$MD5\",\"$SHA1\",\"$SHA256\",\"$Filesize\",\"$Bytes\",\"$Version\",\"$BundleIdentifier\",\"$Copyright\",\"$UseCount\",\"$LastUsedDate\",\"$DateAdded\",\"$ContentCreationDate\",\"$ContentModificationDate\",\"$Status\",\"$Origin\",\"$Source\" >> "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/Installed-Apps.csv"
+	echo "$Name,$Application,$MD5,$SHA1,$SHA256,$Filesize,$Bytes,$Version,$BundleIdentifier,$Copyright,$UseCount,$LastUsedDate,$DateAdded,$ContentCreationDate,$ContentModificationDate,$Status,$Origin,$Source" >> "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/Installed-Apps.csv"
 
 done < "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/Installed-Apps.txt"
 
@@ -1581,7 +1644,7 @@ echo "$AllApps" > "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/Apps.txt"
 echo "\"Name\",\"FullPath\",\"MD5\",\"SHA1\",\"SHA256\",\"Filesize\",\"Bytes\",\"Version\",\"BundleIdentifier\",\"Copyright\",\"UseCount\",\"LastUsedDate\",\"DateAdded\",\"ContentCreationDate\",\"ContentModificationDate\",\"SignatureStatus\",\"SignatureOrigin\",\"SignatureSource\"" > "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/Apps.csv"
 
 # Data
-while read Application
+while read -r Application
 do
 	Name=$(/usr/bin/basename "$Application")
 
@@ -1598,7 +1661,7 @@ do
 		else
 			# Guessing Binary Name
 			BaseName="$Name"
-			Binary=$(/usr/bin/basename ${BaseName%.*})
+			Binary=$(/usr/bin/basename "${BaseName%.*}")
 			Executable="$Application/$Binary"
 		fi
 	fi
@@ -1641,7 +1704,7 @@ do
 	Origin=$(echo "$Signature" | /usr/bin/grep "origin=" | /usr/bin/sed -e 's/origin=//g')
 	Source=$(echo "$Signature" | /usr/bin/grep "source=" | /usr/bin/sed -e 's/source=//g')
 
-	echo \"$Name\",\"$Application\",\"$MD5\",\"$SHA1\",\"$SHA256\",\"$Filesize\",\"$Bytes\",\"$Version\",\"$BundleIdentifier\",\"$Copyright\",\"$UseCount\",\"$LastUsedDate\",\"$DateAdded\",\"$ContentCreationDate\",\"$ContentModificationDate\",\"$Status\",\"$Origin\",\"$Source\" >> "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/Apps.csv"
+	echo "\"$Name\",\"$Application\",\"$MD5\",\"$SHA1\",\"$SHA256\",\"$Filesize\",\"$Bytes\",\"$Version\",\"$BundleIdentifier\",\"$Copyright\",\"$UseCount\",\"$LastUsedDate\",\"$DateAdded\",\"$ContentCreationDate\",\"$ContentModificationDate\",\"$Status\",\"$Origin\",\"$Source\"" >> "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/Apps.csv"
 
 done < "$OUTPUT/SystemInfo/SystemInfo_Data/AppInfo/Apps.txt"
 
@@ -1691,11 +1754,11 @@ fi
 # Recently Downloaded Files (Last 7 Days)
 for UserName in $(/usr/bin/dscl . list /Users UniqueID | /usr/bin/awk '$2 > 500 {print $1}')
 do
-	/usr/bin/find /Users/$UserName/Downloads -type f -mtime -7 -ls > "$OUTPUT/SystemInfo/SystemInfo_Data/Recently-Downloaded-Files_$UserName.txt" 2>&1
+	/usr/bin/find /Users/"$UserName"/Downloads -type f -mtime -7 -ls > "$OUTPUT/SystemInfo/SystemInfo_Data/Recently-Downloaded-Files_$UserName.txt" 2>&1
 done
 
 # List Open Files
-/usr/bin/sudo /usr/sbin/lsof -n > "$OUTPUT/SystemInfo/SystemInfo_Data/Open-Files.txt" 2>&1
+/usr/sbin/lsof -n 2>&1 | /usr/bin/sudo /usr/bin/tee "$OUTPUT/SystemInfo/SystemInfo_Data/Open-Files.txt" > /dev/null
 
 # Dock Information
 /bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/DockInfo/raw"
@@ -1725,8 +1788,8 @@ for UserName in $(/usr/bin/dscl . list /Users UniqueID | /usr/bin/awk '$2 > 500 
 do
 	FILE="/Users/$UserName/Library/Application Support/com.apple.akd/devicelist.db"
 	if [[ -f "$FILE" ]]; then
-		/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/DeviceList/$Username"
-		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/DeviceList/$Username/devicelist_$UserName.db"
+		/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/DeviceList/$UserName"
+		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/DeviceList/$UserName/devicelist_$UserName.db"
 	fi
 done
 
@@ -1751,7 +1814,7 @@ echo "$SystemExtensions" > "$OUTPUT/SystemInfo/SystemInfo_Data/Extensions/System
 
 # Find My Mac
 FMM=$(/usr/sbin/nvram -x -p | /usr/bin/grep fmm-mobileme-token-FMM)
-if [[ -z "$fmmToken" ]]; then
+if [[ -z "$FMM" ]]; then
 	echo "[Info]  Find My Mac is disabled." > "$OUTPUT/SystemInfo/SystemInfo_Data/FindMyMac_Status.txt"
 else
 	echo "[Info]  Find my Mac is enabled." > "$OUTPUT/SystemInfo/SystemInfo_Data/FindMyMac_Status.txt"
@@ -1759,9 +1822,9 @@ fi
 
 # Supervision / Device Enrollment (MDM)
 /bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/MDM"
-/usr/bin/sudo /usr/bin/profiles show > "$OUTPUT/SystemInfo/SystemInfo_Data/MDM/Profiles.txt" 2>&1
-/usr/bin/sudo /usr/bin/profiles status -type enrollment > "$OUTPUT/SystemInfo/SystemInfo_Data/MDM/DeviceEnrollment_Status.txt" 2>&1
-/usr/bin/sudo /usr/bin/profiles show -P -v -o stdout-xml > "$OUTPUT/SystemInfo/SystemInfo_Data/MDM/Profiles.xml"
+/usr/bin/profiles show 2>&1 | /usr/bin/sudo /usr/bin/tee "$OUTPUT/SystemInfo/SystemInfo_Data/MDM/Profiles.txt" > /dev/null
+/usr/bin/profiles status -type enrollment 2>&1 | /usr/bin/sudo /usr/bin/tee "$OUTPUT/SystemInfo/SystemInfo_Data/MDM/DeviceEnrollment_Status.txt" > /dev/null
+/usr/bin/profiles show -P -v -o stdout-xml | /usr/bin/sudo /usr/bin/tee "$OUTPUT/SystemInfo/SystemInfo_Data/MDM/Profiles.xml" > /dev/null
 
 # System Settings > General > Device Management
 
@@ -1808,14 +1871,14 @@ if [[ -d "$APPLICATION" ]]; then
 	# Collecting Microsoft Intune Logs
 
 	# Intune MDM Daemon Logs
-	/usr/bin/sudo /usr/bin/find "/Library/Logs/Microsoft/Intune" -name "IntuneMDMDaemon*.log" -type f > "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/IntuneMDMDaemonLogs.txt" 2> /dev/null
+	/usr/bin/sudo /usr/bin/find "/Library/Logs/Microsoft/Intune" -name "IntuneMDMDaemon*.log" -type f 2> /dev/null | /usr/bin/sudo /usr/bin/tee "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/IntuneMDMDaemonLogs.txt" > /dev/null
 	if [[ -s "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/IntuneMDMDaemonLogs.txt" ]]; then
 		/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/Logs/Daemon"
 		/usr/bin/sudo /usr/bin/rsync --recursive -av --files-from="$OUTPUT/SystemInfo/SystemInfo_Data/Intune/IntuneMDMDaemonLogs.txt" / "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/Logs/Daemon" > /dev/null
 	fi
 
 	# Intune MDM Agent Logs
-	/usr/bin/sudo /usr/bin/find "/Library/Logs/Microsoft/Intune" -name "IntuneMDMAgent*.log" -type f > "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/IntuneMDMAgentLogs.txt" 2> /dev/null
+	/usr/bin/sudo /usr/bin/find "/Library/Logs/Microsoft/Intune" -name "IntuneMDMAgent*.log" -type f 2> /dev/null | /usr/bin/sudo /usr/bin/tee "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/IntuneMDMAgentLogs.txt" > /dev/null
 	if [[ -s "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/IntuneMDMAgentLogs.txt" ]]; then
 		/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/Logs/Agent"
 		/usr/bin/sudo /usr/bin/rsync --recursive -av --files-from="$OUTPUT/SystemInfo/SystemInfo_Data/Intune/IntuneMDMAgentLogs.txt" / "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/Logs/Agent" > /dev/null
@@ -1833,6 +1896,44 @@ if [[ -d "$APPLICATION" ]]; then
 	if [[ -f "$FILE" ]]; then
 		/bin/cp "$FILE" "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/com.microsoft.intuneMDMAgent.plist"
 		/usr/bin/plutil -p "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/Intune/com.microsoft.intuneMDMAgent.txt"
+	fi
+fi
+
+# CrowdStrike Falcon
+FILE="/Applications/Falcon.app/Contents/Resources/falconctl"
+if [[ -f "$FILE" ]]; then
+	/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/CrowdStrike"
+
+	# Agent Info (Stats)
+	FILE="$OUTPUT/SystemInfo/SystemInfo_Data/CrowdStrike/AgentInfo.plist"
+	/usr/bin/sudo /Applications/Falcon.app/Contents/Resources/falconctl stats agent_info --plist 2>&1 | /usr/bin/sudo /usr/bin/tee "$FILE" > /dev/null
+
+	# CrowdStrike System Version
+	/usr/libexec/PlistBuddy -c "Print agent_info:version" "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/CrowdStrike/SensorVersion.txt"
+
+	# CrowdStrike Host ID (AID)
+	/usr/libexec/PlistBuddy -c "Print agent_info:agentID" "$FILE"> "$OUTPUT/SystemInfo/SystemInfo_Data/CrowdStrike/AID.txt"
+
+	# CrowdStrike Customer ID (CID)
+	/usr/libexec/PlistBuddy -c "Print agent_info:customerID" "$FILE" > "$OUTPUT/SystemInfo/SystemInfo_Data/CrowdStrike/CID.txt"
+fi
+
+# LimaCharlie - SecOps Cloud Platform (SCP)
+FILE="/usr/local/bin/rphcp"
+if [[ -f "$FILE" ]]; then
+	/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/LimaCharlie"
+
+	# Sensor Version
+	/usr/bin/sudo "$FILE" -V | /usr/bin/sudo /usr/bin/tee "$OUTPUT/SystemInfo/SystemInfo_Data/LimaCharlie/SensorVersion.txt" > /dev/null
+
+	# Sensor Health
+	/usr/bin/sudo "$FILE" -H | /usr/bin/sudo /usr/bin/tee "$OUTPUT/SystemInfo/SystemInfo_Data/LimaCharlie/SensorHealth.txt" > /dev/null
+
+	# Collect Sensor Health Reports
+	FOLDER="/Library/Application Support/limacharlie"
+	COUNT=$(/usr/bin/sudo /usr/bin/find "$FOLDER" -type f -name '*.json' 2> /dev/null | /usr/bin/grep -c ^)
+	if [[ "$COUNT" -ge 1 ]]; then
+		/bin/cp "$FOLDER"/sensor_health_*.json "$OUTPUT/SystemInfo/SystemInfo_Data/LimaCharlie/"
 	fi
 fi
 
@@ -1881,7 +1982,7 @@ if [[ -f "$FILE" ]]; then
 	if [[ -n "$(/bin/ls -A "$QUARANTINE_FOLDER")" ]]; then
 
 		# Count Quarantine Files
-		COUNT=$(ls -1 "$QUARANTINE_FOLDER" | /usr/bin/grep -c ^)
+		COUNT=$(find "$QUARANTINE_FOLDER" -mindepth 1 -maxdepth 1 -print0 | /usr/bin/tr -dc '\0' | /usr/bin/wc -c)
 		if [[ $COUNT -ge 1 ]]; then
 			echo -e "\033[91m[ALERT] $COUNT Quarantine File(s) found\033[0m"
 			echo "[ALERT] $COUNT Quarantine File(s) found" >> "$LOGFILE"
@@ -1889,9 +1990,9 @@ if [[ -f "$FILE" ]]; then
 
 		# Collect Quarantine Files
 		if [[ $COUNT -ge 1 ]];then
-			cd "$OUTPUT/SystemInfo/SystemInfo_Data/MDE"
+			cd "$OUTPUT/SystemInfo/SystemInfo_Data/MDE" || exit 1
 			/usr/bin/zip -q -e -r -P "$PASSWORD" "Quarantine.zip" "$QUARANTINE_FOLDER/*"
-			cd "$SCRIPT_DIR"
+			cd "$SCRIPT_DIR" || exit 1
 		fi
 	fi
 
@@ -1909,7 +2010,7 @@ if [[ -f "$FILE" ]]; then
 	# Microsoft AutoUpdate (MAU)
 	FILE="/Library/Application Support/Microsoft/MAU2.0/Microsoft AutoUpdate.app/Contents/MacOS/msupdate"
 	if [[ -f "$FILE" ]]; then
-		cd "/Library/Application Support/Microsoft/MAU2.0/Microsoft AutoUpdate.app/Contents/MacOS"
+		cd "/Library/Application Support/Microsoft/MAU2.0/Microsoft AutoUpdate.app/Contents/MacOS" || exit
 		
 		# Show usage information
 		./msupdate --help > "$OUTPUT/SystemInfo/SystemInfo_Data/MDE/Microsoft-AutoUpdate_Help.txt" 2>&1
@@ -1925,26 +2026,8 @@ if [[ -f "$FILE" ]]; then
 		# Display current AutoUpdate configuration
 		./msupdate --config > "$OUTPUT/SystemInfo/SystemInfo_Data/MDE/AutoUpdate-Configuration.txt" 2>&1
 		./msupdate --config --format plist > "$OUTPUT/SystemInfo/SystemInfo_Data/MDE/AutoUpdate-Configuration.plist" 2>&1
-		cd "$SCRIPT_DIR"
+		cd "$SCRIPT_DIR" || exit
 	fi
-fi
-
-# CrowdStrike Falcon
-FILE="/Library/CS/falconctl"
-if [ -f "$FILE" ]; then
-	/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/CrowdStrike"
-
-	# CrowdStrike Agent Version
-	AgentVersion=$(/usr/sbin/sysctl cs.version | /usr/bin/awk '{ print $2 }')
-	echo "[Info]  CrowdStrike Agent Version: $AgentVersion" > "$OUTPUT/SystemInfo/SystemInfo_Data/CrowdStrike/Agent-Version.txt"
-
-	# CrowdStrike Agent-ID
-	AgentID=$(/usr/sbin/sysctl cs.sensorid | /usr/bin/awk '{ print $2 }')
-	echo "[Info]  CrowdStrike Agent-ID: $AgentID" > "$OUTPUT/SystemInfo/SystemInfo_Data/CrowdStrike/Agent-ID.txt"
-
-	# CrowdStrike InstallGuard
-	InstallGuard=$(/usr/sbin/sysctl cs.control.installguard | /usr/bin/awk '{ print $2 }')
-	echo "[Info]  CrowdStrike InstallGuard: $InstallGuard" > "$OUTPUT/SystemInfo/SystemInfo_Data/CrowdStrike/InstallGuard.txt"
 fi
 
 # Lockdown Files (Pairing Records)
@@ -1959,7 +2042,7 @@ if [[ -d "/private/var/db/lockdown" ]]; then
 		/usr/bin/sudo /usr/bin/find /private/var/db/lockdown -type f -name '*.plist' | /usr/bin/grep -v "SystemConfiguration.plist" > "$OUTPUT/SystemInfo/SystemInfo_Data/Lockdown/Files.txt"
 		if [[ -s "$OUTPUT/SystemInfo/SystemInfo_Data/Lockdown/Files.txt" ]]; then
 			echo "[Info]  Collecting Lockdown File(s) ..."
-			/usr/bin/sudo /usr/bin/rsync --recursive -av --files-from="$OUTPUT/SystemInfo/SystemInfo_Data/Lockdown/Files.txt" / "$OUTPUT/SystemInfo/SystemInfo_Data/Lockdown" >> "$OUTPUT/SystemInfo/SystemInfo_Data/Lockdown/Collection.txt" 2>&1
+			/usr/bin/sudo /usr/bin/rsync --recursive -av --files-from="$OUTPUT/systeminfo/systeminfo_data/lockdown/files.txt" / "$OUTPUT/systeminfo/systeminfo_data/lockdown" 2>&1 | /usr/bin/sudo /usr/bin/tee -a "$OUTPUT/systeminfo/systeminfo_data/lockdown/collection.txt" > /dev/null
 		fi
 	fi
 fi
@@ -1973,7 +2056,7 @@ for User in $UserList; do
 			/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/iOS-Backups/$User"
 			/usr/bin/find "/Users/$User/Library/Application Support/MobileSync/Backup" -mindepth 1 -maxdepth 1 -type d > "$OUTPUT/SystemInfo/SystemInfo_Data/iOS-Backups/$User/iOS-Backups.txt"
 
-			while read FOLDER
+			while read -r FOLDER
 			do
 				UDID=$(/usr/bin/basename "$FOLDER")
 				/bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/iOS-Backups/$User/$UDID"
@@ -2015,9 +2098,9 @@ done
 # Creating Secure Archive
 if [[ -d "$OUTPUT/SystemInfo/SystemInfo_Data" ]]; then
 	echo "[Info]  Preparing Secure Archive Container ..."
-	cd "$OUTPUT/SystemInfo"
+	cd "$OUTPUT/SystemInfo" || exit
 	"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "SystemInfo_$SerialNumber.7z" "SystemInfo_Data/*" > /dev/null 2>&1
-	cd "$SCRIPT_DIR"
+	cd "$SCRIPT_DIR" || exit
 fi
 
 # Archive Name
@@ -2038,11 +2121,11 @@ if [[ -s $(/bin/ls -A "$FILE") ]]; then
 fi
 
 # Create Time
-BIRTH=$(TZ= /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+BIRTH=$(TZ='' /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Create Time: $BIRTH UTC"
 
 # Last Modified Time
-MODIFY=$(TZ= /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+MODIFY=$(TZ='' /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Last Modified Time: $MODIFY UTC"
 
 # Cleaning up
@@ -2053,8 +2136,8 @@ fi
 
 # Stats
 END_SYSTEMINFO=$(/bin/date +%s)
-ELAPSED_TIME_SYSTEMINFO=$(($END_SYSTEMINFO - $START_SYSTEMINFO))
-echo "System Information Collection: $(($ELAPSED_TIME_SYSTEMINFO/60)) min $(($ELAPSED_TIME_SYSTEMINFO%60)) sec" >> "$OUTPUT"/Stats.txt
+ELAPSED_TIME_SYSTEMINFO=$((END_SYSTEMINFO - START_SYSTEMINFO))
+echo "System Information Collection: $((ELAPSED_TIME_SYSTEMINFO/60)) min $((ELAPSED_TIME_SYSTEMINFO%60)) sec" >> "$OUTPUT"/Stats.txt
 
 }
 
@@ -2105,11 +2188,11 @@ fi
 
 # Default Collection + Deep Scan
 echo "[Info]  Aftermath Collection w/ Deep Scan is running [approx. 3-20 min] ..."
-/usr/bin/sudo "$AFTERMATH" -o "$OUTPUT"/Aftermath_Collection --deep --pretty > "$OUTPUT"/Aftermath_Collection/Aftermath-colored.txt 2> /dev/null
+/usr/bin/sudo "$AFTERMATH" -o "$OUTPUT"/Aftermath_Collection --deep --pretty 2> /dev/null | /usr/bin/sudo /usr/bin/tee "$OUTPUT"/Aftermath_Collection/Aftermath-colored.txt > /dev/null
 
 # Remove Aftermath folders from default locations ("/tmp", "/var/folders/zz/) 
 echo "[Info]  Cleaning up ..."
-/usr/bin/sudo "$AFTERMATH" --cleanup > "$OUTPUT"/Aftermath_Collection/Cleanup.txt 2> /dev/null
+/usr/bin/sudo "$AFTERMATH" --cleanup | /usr/bin/sudo /usr/bin/tee "$OUTPUT"/Aftermath_Collection/Cleanup.txt > /dev/null
 
 # Cleaning Aftermath Logfile
 /bin/cat -v "$OUTPUT"/Aftermath_Collection/Aftermath-colored.txt | /usr/bin/sed -e 's/\^\[//g' | /usr/bin/sed -e 's/\[0;[0-9]*m//g' > "$OUTPUT"/Aftermath_Collection/Aftermath.txt
@@ -2117,9 +2200,9 @@ echo "[Info]  Cleaning up ..."
 # Creating Secure Archive
 if [[ -d "$OUTPUT/Aftermath_Collection" ]]; then
 	echo "[Info]  Preparing Secure Archive Container ..."
-	cd "$OUTPUT"
+	cd "$OUTPUT" || exit
 	"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "Aftermath_$SerialNumber.7z" "Aftermath_Collection/*" > /dev/null 2>&1
-	cd "$SCRIPT_DIR"
+	cd "$SCRIPT_DIR" || exit
 fi
 
 # Archive Name
@@ -2140,11 +2223,11 @@ if [[ -s $(/bin/ls -A "$FILE") ]]; then
 fi
 
 # Create Time
-BIRTH=$(TZ= /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+BIRTH=$(TZ='' /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Create Time: $BIRTH UTC"
 
 # Last Modified Time
-MODIFY=$(TZ= /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+MODIFY=$(TZ='' /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Last Modified Time: $MODIFY UTC"
 
 # Cleaning up
@@ -2155,8 +2238,8 @@ fi
 
 # Stats
 END_COLLECTION=$(/bin/date +%s)
-ELAPSED_TIME_COLLECTION=$(($END_COLLECTION - $START_COLLECTION))
-echo "Aftermath Collection w/ Deep Scan: $(($ELAPSED_TIME_COLLECTION/60)) min $(($ELAPSED_TIME_COLLECTION%60)) sec" > "$OUTPUT"/Stats.txt
+ELAPSED_TIME_COLLECTION=$((END_COLLECTION - START_COLLECTION))
+echo "Aftermath Collection w/ Deep Scan: $((ELAPSED_TIME_COLLECTION/60)) min $((ELAPSED_TIME_COLLECTION%60)) sec" > "$OUTPUT"/Stats.txt
 
 }
 
@@ -2175,7 +2258,8 @@ echo ""
 START_ANALYSIS=$(/bin/date +%s)
 
 # Where is your previous collected Aftermath Archive stored?
-read -e -p "Enter Aftermath Archive Path (Aftermath_<SERIAL_NUMBER>.zip): `echo $'\n> '`" ARCHIVE_FILE
+read -e -r -p "Enter Aftermath Archive Path (Aftermath_<SERIAL_NUMBER>.zip): 
+> " ARCHIVE_FILE
 echo ""
 
 # Check if Aftermath Archive exists
@@ -2210,7 +2294,7 @@ then
 	# Analyze Aftermath Archive
 	echo "[Info]  Analyzing Aftermath Archive [approx. 1-10 min] ..."
 	/bin/mkdir -p "$OUTPUT"/Aftermath_Analysis/
-	/usr/bin/sudo "$AFTERMATH" --analyze "$ARCHIVE_FILE" --pretty -o "$OUTPUT/Aftermath_Analysis" > "$OUTPUT/Aftermath_Analysis/Aftermath-colored.txt" 2> /dev/null
+	/usr/bin/sudo "$AFTERMATH" --analyze "$ARCHIVE_FILE" --pretty -o "$OUTPUT/Aftermath_Analysis" 2> /dev/null | /usr/bin/sudo /usr/bin/tee "$OUTPUT/Aftermath_Analysis/Aftermath-colored.txt" > /dev/null
 
 	# Cleaning Aftermath Logfile
 	if [[ -f "$OUTPUT/Aftermath_Analysis/Aftermath-colored.txt" ]]; then
@@ -2220,10 +2304,10 @@ then
 	# Creating Secure Archive
 	if [[ -d "$OUTPUT/Aftermath_Analysis" ]]; then
 		echo "[Info]  Preparing Secure Archive Container ..."
-		cd "$OUTPUT"
+		cd "$OUTPUT" || exit
 		SerialNumber=$(/usr/bin/basename "$ARCHIVE_FILE" | /usr/bin/cut -d. -f1 | /usr/bin/sed -e 's/Aftermath_//g')
 		"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "Aftermath_Analysis_$SerialNumber.7z" "Aftermath_Analysis/*" > /dev/null 2>&1
-		cd "$SCRIPT_DIR"
+		cd "$SCRIPT_DIR" || exit
 	fi
 
 	# Archive Name
@@ -2244,11 +2328,11 @@ then
 	fi
 
 	# Create Time
-	BIRTH=$(TZ= /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+	BIRTH=$(TZ='' /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 	echo "[Info]  Create Time: $BIRTH UTC"
 
 	# Last Modified Time
-	MODIFY=$(TZ= /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+	MODIFY=$(TZ='' /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 	echo "[Info]  Last Modified Time: $MODIFY UTC"
 	
 	# Cleaning Aftermath Logfile
@@ -2267,8 +2351,8 @@ fi
 
 # Stats
 END_ANALYSIS=$(/bin/date +%s)
-ELAPSED_TIME_ANALYSIS=$(($END_ANALYSIS - $START_ANALYSIS))
-echo "Aftermath Analysis: $(($ELAPSED_TIME_ANALYSIS/60)) min $(($ELAPSED_TIME_ANALYSIS%60)) sec" >> "$OUTPUT"/Stats.txt
+ELAPSED_TIME_ANALYSIS=$((END_ANALYSIS - START_ANALYSIS))
+echo "Aftermath Analysis: $((ELAPSED_TIME_ANALYSIS/60)) min $((ELAPSED_TIME_ANALYSIS%60)) sec" >> "$OUTPUT"/Stats.txt
 	
 }
 
@@ -2285,7 +2369,7 @@ START_BTM=$(/bin/date +%s)
 # Collecting BTM Dump File (via Shared File List Tool)
 echo "[Info]  Collecting BTM Dump File ..."
 /bin/mkdir -p "$OUTPUT/BTM"
-/usr/bin/sudo /usr/bin/sfltool dumpbtm > "$OUTPUT/BTM/btm.txt"
+/usr/bin/sfltool dumpbtm | /usr/bin/sudo /usr/bin/tee "$OUTPUT/BTM/btm.txt" > /dev/null
 
 # File Size
 FILE="$OUTPUT/BTM/btm.txt"
@@ -2307,26 +2391,28 @@ COUNT=$(/bin/cat "$FILE" | /usr/bin/grep -c "Records for UID")
 echo "[Info]  $COUNT User ID's found"
 
 # Count Background Items (Item Records)
-TOTAL=$(/bin/cat $FILE | /usr/bin/grep -E -c "^ #\d+:")
+TOTAL=$(/bin/cat "$FILE" | /usr/bin/grep -E -c "^ #\d+:")
 echo "[Info]  $TOTAL Background Item(s) found"
 
 # Collecting BTM Database File(s)
-/usr/bin/sudo /usr/bin/find "/private/var/db/com.apple.backgroundtaskmanagement" -name "BackgroundItems-v*.btm" -type f > "$OUTPUT/BTM/Files.txt" 2> /dev/null
+/usr/bin/sudo /usr/bin/find "/private/var/db/com.apple.backgroundtaskmanagement" -name "BackgroundItems-v*.btm" -type f 2> /dev/null | /usr/bin/sudo /usr/bin/tee "$OUTPUT/BTM/Files.txt" > /dev/null
 if [[ -s "$OUTPUT/BTM/Files.txt" ]]; then
 	echo "[Info]  Collecting BTM Database File(s) ..."
 	/bin/mkdir -p "$OUTPUT/BTM/BTM_Data"
-	/usr/bin/sudo /usr/bin/rsync --recursive -av --files-from="$OUTPUT/BTM/Files.txt" / "$OUTPUT/BTM/BTM_Data" >> "$OUTPUT/BTM/Collection.txt" 2>&1
+	/usr/bin/sudo /usr/bin/rsync --recursive -av --files-from="$OUTPUT/BTM/Files.txt" / "$OUTPUT/BTM/BTM_Data" 2>&1 | /usr/bin/sudo /usr/bin/tee -a "$OUTPUT/BTM/Collection.txt" > /dev/null
 fi
 
 # Directory Service Attributes (Open Directory) --> User Properties
 for UserName in $(/usr/bin/dscl . list /Users UniqueID | /usr/bin/grep -v "^_" | /usr/bin/grep -v "daemon" | /usr/bin/sort -k2 | /usr/bin/awk '{ print $1 }')
 do
-	echo "Name: $UserName" >> "$OUTPUT/BTM/Users.txt"
-	/usr/bin/dscl . read /Users/$UserName UniqueID >> "$OUTPUT/BTM/Users.txt"
-	/usr/bin/dscl . read /Users/$UserName generateduid | /usr/bin/sed -e "s/dsAttrTypeNative:generateduid:/UUID:/g" >> "$OUTPUT/BTM/Users.txt"
-	/usr/bin/dscl . read /Users/$UserName NFSHomeDirectory | /usr/bin/sed -e "s/NFSHomeDirectory:/Home Directory:/g" >> "$OUTPUT/BTM/Users.txt"
-	/usr/bin/dscl . read /Users/$UserName RealName| /usr/bin/xargs | /usr/bin/sed -e "s/RealName:/Real Name:/g" >> "$OUTPUT/BTM/Users.txt"
-	echo "" >> "$OUTPUT/BTM/Users.txt"
+	{
+		echo "Name: $UserName"
+		/usr/bin/dscl . read /Users/"$UserName" UniqueID
+		/usr/bin/dscl . read /Users/"$UserName" generateduid | /usr/bin/sed -e "s/dsAttrTypeNative:generateduid:/UUID:/g"
+		/usr/bin/dscl . read /Users/"$UserName" NFSHomeDirectory | /usr/bin/sed -e "s/NFSHomeDirectory:/Home Directory:/g"
+		/usr/bin/dscl . read /Users/"$UserName" RealName | /usr/bin/xargs | /usr/bin/sed -e "s/RealName:/Real Name:/g"
+		echo ""
+	} >> "$OUTPUT/BTM/Users.txt"
 done
 
 # Creating read-only Disk Image (APFS)
@@ -2342,10 +2428,12 @@ FILE="$OUTPUT/BTM/BTM_$SerialNumber.dmg"
 if [[ -f "$FILE" ]]; then
 	BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
 	FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
-	echo "BTM_$SerialNumber.dmg ($FILESIZE)" > "$OUTPUT/BTM/DiskInfo.txt"
-	echo "MD5: $(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/BTM/DiskInfo.txt"
-	echo "SHA1: $(/usr/bin/openssl sha1 "$FILE" | /usr/bin/awk '{ print $2 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/BTM/DiskInfo.txt"
-	echo "SHA256: $(/usr/bin/openssl dgst -sha256 "$FILE" | /usr/bin/awk '{ print $2 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/BTM/DiskInfo.txt"
+	{
+		echo "BTM_$SerialNumber.dmg ($FILESIZE)"
+		/sbin/md5 -q "$FILE" | /usr/bin/tr '[:lower:]' '[:upper:]' | /usr/bin/sed 's/^/MD5: /'
+		/usr/bin/shasum -a 1 "$FILE" | /usr/bin/awk '{print "SHA1: " toupper($1)}'
+		/usr/bin/shasum -a 256 "$FILE" | /usr/bin/awk '{print "SHA256: " toupper($1)}'
+	} > "$OUTPUT/BTM/DiskInfo.txt"
 fi
 
 # Image Info (DMG)
@@ -2357,9 +2445,9 @@ fi
 # Creating Secure Archive (DMG)
 FILE="$OUTPUT/BTM/BTM_$SerialNumber.dmg"
 if [[ -f "$FILE" ]]; then
-	cd "$OUTPUT/BTM"
+	cd "$OUTPUT/BTM" || exit
 	"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "BTM_$SerialNumber.dmg.7z" "$FILE" > /dev/null 2>&1
-	cd "$SCRIPT_DIR"
+	cd "$SCRIPT_DIR" || exit
 	
 	# Cleaning up 
 	/bin/rm -rf "$FILE"
@@ -2372,9 +2460,9 @@ echo "[Info]  $COUNT BTM Database File(s) found"
 # Creating Secure Archive
 if [[ -d "$OUTPUT/BTM/BTM_Data" ]]; then
 	echo "[Info]  Preparing Secure Archive Container ..."
-	cd "$OUTPUT/BTM"
+	cd "$OUTPUT/BTM" || exit
 	"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "BTM_$SerialNumber.7z" "BTM_Data/*" > /dev/null 2>&1
-	cd "$SCRIPT_DIR"
+	cd "$SCRIPT_DIR" || exit
 fi
 
 # Archive Name
@@ -2395,11 +2483,11 @@ if [[ -s $(/bin/ls -A "$FILE") ]]; then
 fi
 
 # Create Time
-BIRTH=$(TZ= /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+BIRTH=$(TZ='' /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Create Time: $BIRTH UTC"
 
 # Last Modified Time
-MODIFY=$(TZ= /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+MODIFY=$(TZ='' /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Last Modified Time: $MODIFY UTC"
 
 # Cleaning up
@@ -2410,8 +2498,8 @@ fi
 
 # Stats
 END_BTM=$(/bin/date +%s)
-ELAPSED_TIME_BTM=$(($END_BTM - $START_BTM))
-echo "BTM Dump File Collection: $(($ELAPSED_TIME_BTM/60)) min $(($ELAPSED_TIME_BTM%60)) sec" >> "$OUTPUT"/Stats.txt
+ELAPSED_TIME_BTM=$((END_BTM - START_BTM))
+echo "BTM Dump File Collection: $((ELAPSED_TIME_BTM/60)) min $((ELAPSED_TIME_BTM%60)) sec" >> "$OUTPUT"/Stats.txt
 
 }
 
@@ -2438,17 +2526,17 @@ fi
 
 # Find all .DS_Store Files in the root directory
 echo "[Info]  Enumerating Desktop Service Store Files [approx. 1-2 min] ..."
-/usr/bin/sudo /usr/bin/find / -name ".DS_Store" -type f > "$OUTPUT/DS_Store/Files.txt" 2> "$OUTPUT/DS_Store/Error.txt"
+/usr/bin/sudo /usr/bin/find / -name ".DS_Store" -type f 2> >(/usr/bin/sudo /usr/bin/tee "$OUTPUT/DS_Store/Error.txt" > /dev/null) | /usr/bin/sudo /usr/bin/tee "$OUTPUT/DS_Store/Files.txt" > /dev/null
 
 # Count Desktop Service Store Files w/ thousands separator
 FILES=$(/bin/cat "$OUTPUT/DS_Store/Files.txt" | /usr/bin/grep -c ^)
-COUNT=$(/usr/bin/printf "%'d\n" $FILES | /usr/bin/tr -s "," ".")
+COUNT=$(/usr/bin/printf "%'d\n" "$FILES" | /usr/bin/tr -s "," ".")
 echo "[Info]  $COUNT DS_Store Files found"
 
 # Copy and preserve Apple Extended Attributes w/ Rsync (Archive Mode)
 echo "[Info]  Collecting Desktop Service Store Files ..."
 if [[ -s "$OUTPUT/DS_Store/Files.txt" ]]; then
-	/usr/bin/sudo /usr/bin/rsync --recursive -av --files-from="$OUTPUT/DS_Store/Files.txt" / "$OUTPUT/DS_Store/DSStore_Data" >> "$OUTPUT/DS_Store/Collection.txt" 2>&1
+	/usr/bin/sudo /usr/bin/rsync --recursive -av --files-from="$OUTPUT/DS_Store/Files.txt" / "$OUTPUT/DS_Store/DSStore_Data" 2>&1 | /usr/bin/sudo /usr/bin/tee -a "$OUTPUT/DS_Store/Collection.txt" > /dev/null
 fi
 
 # Creating read-only Disk Image (APFS)
@@ -2464,10 +2552,12 @@ FILE="$OUTPUT/DS_Store/DSStore_$SerialNumber.dmg"
 if [[ -f "$FILE" ]]; then
 	BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
 	FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
-	echo "DSStore_$SerialNumber.dmg ($FILESIZE)" > "$OUTPUT/DS_Store/DiskInfo.txt"
-	echo "MD5: $(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/DS_Store/DiskInfo.txt"
-	echo "SHA1: $(/usr/bin/openssl sha1 "$FILE" | /usr/bin/awk '{ print $2 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/DS_Store/DiskInfo.txt"
-	echo "SHA256: $(/usr/bin/openssl dgst -sha256 "$FILE" | /usr/bin/awk '{ print $2 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/DS_Store/DiskInfo.txt"
+	{
+		echo "DSStore_$SerialNumber.dmg ($FILESIZE)"
+		/sbin/md5 -q "$FILE" | /usr/bin/tr '[:lower:]' '[:upper:]' | /usr/bin/sed 's/^/MD5: /'
+		/usr/bin/shasum -a 1 "$FILE" | /usr/bin/awk '{print "SHA1: " toupper($1)}'
+		/usr/bin/shasum -a 256 "$FILE" | /usr/bin/awk '{print "SHA256: " toupper($1)}'
+	} > "$OUTPUT/DS_Store/DiskInfo.txt"
 fi
 
 # Image Info (DMG)
@@ -2479,9 +2569,9 @@ fi
 # Creating Secure Archive (DMG)
 FILE="$OUTPUT/DS_Store/DSStore_$SerialNumber.dmg"
 if [[ -f "$FILE" ]]; then
-	cd "$OUTPUT/DS_Store"
+	cd "$OUTPUT/DS_Store" || exit
 	"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "DSStore_$SerialNumber.dmg.7z" "$FILE" > /dev/null 2>&1
-	cd "$SCRIPT_DIR"
+	cd "$SCRIPT_DIR" || exit
 	
 	# Cleaning up 
 	/bin/rm -rf "$FILE"
@@ -2490,9 +2580,9 @@ fi
 # Creating Secure Archive
 if [[ -d "$OUTPUT/DS_Store/DSStore_Data" ]]; then
 	echo "[Info]  Preparing Secure Archive Container ..."
-	cd "$OUTPUT/DS_Store"
+	cd "$OUTPUT/DS_Store" || exit
 	"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "DSStore_$SerialNumber.7z" "DSStore_Data/*" > /dev/null 2>&1
-	cd "$SCRIPT_DIR"
+	cd "$SCRIPT_DIR" || exit
 fi
 
 # Archive Name
@@ -2513,11 +2603,11 @@ if [[ -s $(/bin/ls -A "$FILE") ]]; then
 fi
 
 # Create Time
-BIRTH=$(TZ= /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+BIRTH=$(TZ='' /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Create Time: $BIRTH UTC"
 
 # Last Modified Time
-MODIFY=$(TZ= /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+MODIFY=$(TZ='' /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Last Modified Time: $MODIFY UTC"
 
 # Cleaning up
@@ -2528,8 +2618,8 @@ fi
 
 # Stats
 END_DSStore=$(/bin/date +%s)
-ELAPSED_TIME_DSStore=$(($END_DSStore - $START_DSStore))
-echo ".DS_Store Collection: $(($ELAPSED_TIME_DSStore/60)) min $(($ELAPSED_TIME_DSStore%60)) sec" >> "$OUTPUT"/Stats.txt
+ELAPSED_TIME_DSStore=$((END_DSStore - START_DSStore))
+echo ".DS_Store Collection: $((ELAPSED_TIME_DSStore/60)) min $((ELAPSED_TIME_DSStore%60)) sec" >> "$OUTPUT"/Stats.txt
 
 }
 
@@ -2549,14 +2639,14 @@ echo "[Info]  Collecting File System Events ..."
 
 # Count GZIP Files w/ thousands separator
 Total=$(/usr/bin/sudo /usr/bin/find "/System/Volumes/Data/.fseventsd/" -type f ! -name 'fseventsd-uuid' | wc -l | awk '{ print $1 }')
-Count=$(/usr/bin/printf "%'d\n" $Total | /usr/bin/tr -s "," ".")
+Count=$(/usr/bin/printf "%'d\n" "$Total" | /usr/bin/tr -s "," ".")
 echo "[Info]  $Count FSEvent Files found"
 
 # Collecting FSEvents
 SOURCE="/System/Volumes/Data/.fseventsd/"
 DESTINATION="$OUTPUT/FSEvents/FSEvents_Data"
 if [[ -d "$SOURCE" ]] && [[ -n "$(/bin/ls -A "$SOURCE")" ]]; then
-	/usr/bin/sudo /usr/bin/rsync -av "$SOURCE" "$DESTINATION" >> "$OUTPUT/FSEvents/Collection.txt"
+	/usr/bin/rsync -av "$SOURCE" "$DESTINATION" | /usr/bin/sudo /usr/bin/tee -a "$OUTPUT/FSEvents/Collection.txt" > /dev/null
 fi
 
 # Creating read-only Disk Image (APFS)
@@ -2572,10 +2662,12 @@ FILE="$OUTPUT/FSEvents/FSEvents_$SerialNumber.dmg"
 if [[ -f "$FILE" ]]; then
 	BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
 	FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
-	echo "FSEvents_$SerialNumber.dmg ($FILESIZE)" > "$OUTPUT/FSEvents/DiskInfo.txt"
-	echo "MD5: $(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/FSEvents/DiskInfo.txt"
-	echo "SHA1: $(/usr/bin/openssl sha1 "$FILE" | /usr/bin/awk '{ print $2 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/FSEvents/DiskInfo.txt"
-	echo "SHA256: $(/usr/bin/openssl dgst -sha256 "$FILE" | /usr/bin/awk '{ print $2 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/FSEvents/DiskInfo.txt"
+	{
+		echo "RecentItems_$SerialNumber.dmg ($FILESIZE)"
+		echo "MD5: $(/sbin/md5 -q "$FILE" | /usr/bin/tr '[:lower:]' '[:upper:]')"
+		echo "SHA1: $(/usr/bin/openssl sha1 -r "$FILE" | /usr/bin/awk  '{print toupper($1)}')"
+		echo "SHA256: $(/usr/bin/openssl dgst -sha256 -r "$FILE" | /usr/bin/awk  '{print toupper($1)}')"
+	} > "$OUTPUT/FSEvents/DiskInfo.txt"
 fi
 
 # Image Info (DMG)
@@ -2587,9 +2679,9 @@ fi
 # Creating Secure Archive (DMG)
 FILE="$OUTPUT/FSEvents/FSEvents_$SerialNumber.dmg"
 if [[ -f "$FILE" ]]; then
-	cd "$OUTPUT/FSEvents"
+	cd "$OUTPUT/FSEvents" || exit
 	"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "FSEvents_$SerialNumber.dmg.7z" "$FILE" > /dev/null 2>&1
-	cd "$SCRIPT_DIR"
+	cd "$SCRIPT_DIR" || exit
 	
 	# Cleaning up 
 	/bin/rm -rf "$FILE"
@@ -2598,9 +2690,9 @@ fi
 # Creating Secure Archive
 if [[ -d "$OUTPUT/FSEvents/FSEvents_Data" ]]; then
 	echo "[Info]  Preparing Secure Archive Container ..."
-	cd "$OUTPUT/FSEvents"
+	cd "$OUTPUT/FSEvents" || exit
 	"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "FSEvents_$SerialNumber.7z" "FSEvents_Data/*" > /dev/null 2>&1
-	cd "$SCRIPT_DIR"
+	cd "$SCRIPT_DIR" || exit
 fi
 
 # Archive Name
@@ -2621,11 +2713,11 @@ if [[ -s $(/bin/ls -A "$FILE") ]]; then
 fi
 
 # Create Time
-BIRTH=$(TZ= /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+BIRTH=$(TZ='' /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Create Time: $BIRTH UTC"
 
 # Last Modified Time
-MODIFY=$(TZ= /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+MODIFY=$(TZ='' /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Last Modified Time: $MODIFY UTC"
 
 # Cleaning up
@@ -2636,8 +2728,8 @@ fi
 
 # Stats
 END_FSEVENTS=$(/bin/date +%s)
-ELAPSED_TIME_FSEVENTS=$(($END_FSEVENTS - $START_FSEVENTS))
-echo "FSEvents Collection: $(($ELAPSED_TIME_FSEVENTS/60)) min $(($ELAPSED_TIME_FSEVENTS%60)) sec" >> "$OUTPUT"/Stats.txt
+ELAPSED_TIME_FSEVENTS=$((END_FSEVENTS - START_FSEVENTS))
+echo "FSEvents Collection: $((ELAPSED_TIME_FSEVENTS/60)) min $((ELAPSED_TIME_FSEVENTS%60)) sec" >> "$OUTPUT"/Stats.txt
 
 }
 
@@ -2660,9 +2752,9 @@ LOGARCHIVE="$OUTPUT/UnifiedLogs/system_logs.logarchive"
 # Creating Secure Archive
 if [[ -d "$LOGARCHIVE" ]]; then
 	echo "[Info]  Preparing Secure Archive Container ..."
-	cd "$OUTPUT/UnifiedLogs"
+	cd "$OUTPUT/UnifiedLogs" || exit
 	"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "UnifiedLogs_$SerialNumber.7z" "system_logs.logarchive/*" > /dev/null 2>&1
-	cd "$SCRIPT_DIR"
+	cd "$SCRIPT_DIR" || exit
 fi
 
 # Archive Name
@@ -2683,17 +2775,17 @@ if [[ -s $(/bin/ls -A "$FILE") ]]; then
 fi
 
 # Create Time
-BIRTH=$(TZ= /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+BIRTH=$(TZ='' /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Create Time: $BIRTH UTC"
 
 # Last Modified Time
-MODIFY=$(TZ= /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+MODIFY=$(TZ='' /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Last Modified Time: $MODIFY UTC"
 
 # Show System Logging Statistics
 if [[ -d "$LOGARCHIVE" ]]; then
 	echo "[Info]  Creating System Logging Statistics ..."
-	/usr/bin/sudo /usr/bin/log stats --archive "$LOGARCHIVE" > "$OUTPUT"/UnifiedLogs/Statistics.txt
+	/usr/bin/sudo /usr/bin/log stats --archive "$LOGARCHIVE" | /usr/bin/sudo /usr/bin/tee "$OUTPUT/UnifiedLogs/Statistics.txt" > /dev/null
 fi
 
 # Cleaning up
@@ -2703,8 +2795,8 @@ fi
 
 # Stats
 END_AUL=$(/bin/date +%s)
-ELAPSED_TIME_AUL=$(($END_AUL - $START_AUL))
-echo "Unified Logs Collection: $(($ELAPSED_TIME_AUL/60)) min $(($ELAPSED_TIME_AUL%60)) sec" >> "$OUTPUT"/Stats.txt
+ELAPSED_TIME_AUL=$((END_AUL - START_AUL))
+echo "Unified Logs Collection: $((ELAPSED_TIME_AUL/60)) min $((ELAPSED_TIME_AUL%60)) sec" >> "$OUTPUT"/Stats.txt
 
 }
 
@@ -2721,7 +2813,7 @@ START_SYSDIAGNOSE=$(/bin/date +%s)
 # Collecting Sysdiagnose Logs (System Diagnostic Information)
 echo "[Info]  Collecting Sysdiagnose Logs [approx. 1-5 min] ..."
 /bin/mkdir -p "$OUTPUT/Sysdiagnose/Sysdiagnose_Data"
-/usr/bin/sudo /usr/bin/sysdiagnose -f "$OUTPUT/Sysdiagnose/Sysdiagnose_Data" -nbSu > "$OUTPUT/Sysdiagnose/Sysdiagnose.txt" 2>&1
+/usr/bin/sudo /usr/bin/sysdiagnose -f "$OUTPUT/Sysdiagnose/Sysdiagnose_Data" -nbSu 2>&1 | /usr/bin/sudo /usr/bin/tee "$OUTPUT/Sysdiagnose/Sysdiagnose.txt" > /dev/null
 
 # -f   results_directory
 # -n   Do not tar the resulting sysdiagnose directory.
@@ -2733,9 +2825,9 @@ echo "[Info]  Collecting Sysdiagnose Logs [approx. 1-5 min] ..."
 if [[ -d "$OUTPUT/Sysdiagnose/Sysdiagnose_Data" ]]; then
 	if [[ -n "$( ls -A "$OUTPUT/Sysdiagnose/Sysdiagnose_Data" )" ]]; then
 		echo "[Info]  Preparing Secure Archive Container ..."
-		cd "$OUTPUT/Sysdiagnose"
+		cd "$OUTPUT/Sysdiagnose" || exit
 		"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "Sysdiagnose_$SerialNumber.7z" "Sysdiagnose_Data/*" > /dev/null 2>&1
-		cd "$SCRIPT_DIR"
+		cd "$SCRIPT_DIR" || exit
 	fi
 fi
 
@@ -2757,11 +2849,11 @@ if [[ -s $(/bin/ls -A "$FILE") ]]; then
 fi
 
 # Create Time
-BIRTH=$(TZ= /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+BIRTH=$(TZ='' /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Create Time: $BIRTH UTC"
 
 # Last Modified Time
-MODIFY=$(TZ= /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+MODIFY=$(TZ='' /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Last Modified Time: $MODIFY UTC"
 
 # Cleaning up
@@ -2771,8 +2863,8 @@ fi
 
 # Stats
 END_SYSDIAGNOSE=$(/bin/date +%s)
-ELAPSED_TIME_SYSDIAGNOSE=$(($END_SYSDIAGNOSE - $START_SYSDIAGNOSE))
-echo "Sysdiagnose Logs Collection: $(($ELAPSED_TIME_SYSDIAGNOSE/60)) min $(($ELAPSED_TIME_SYSDIAGNOSE%60)) sec" >> "$OUTPUT"/Stats.txt
+ELAPSED_TIME_SYSDIAGNOSE=$((END_SYSDIAGNOSE - START_SYSDIAGNOSE))
+echo "Sysdiagnose Logs Collection: $((ELAPSED_TIME_SYSDIAGNOSE/60)) min $((ELAPSED_TIME_SYSDIAGNOSE%60)) sec" >> "$OUTPUT"/Stats.txt
 
 }
 
@@ -2829,7 +2921,7 @@ fi
 FILE="$KNOCKKNOCK/Contents/MacOS/KnockKnock"
 if [[ -f "$FILE" ]]; then
 	/bin/mkdir -p "$OUTPUT/KnockKnock/KnockKnock_Data"
-	cd "$SCRIPT_DIR/tools/KnockKnock/"
+	cd "$SCRIPT_DIR/tools/KnockKnock/" || exit
 	DATE=$(/bin/date -u +"%Y-%m-%d")
 
 	# Check if VirusTotal API Key exists
@@ -2837,24 +2929,24 @@ if [[ -f "$FILE" ]]; then
 
 		# Launch KnockKnock /wo VirusTotal
 		echo "[Info]  Scanning Live System w/ KnockKnock ..."
-		/usr/bin/sudo ./KnockKnock.app/Contents/MacOS/KnockKnock -whosthere -verbose > "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE-verbose.json"
+		./KnockKnock.app/Contents/MacOS/KnockKnock -whosthere -verbose | /usr/bin/sudo /usr/bin/tee "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE-verbose.json" > /dev/null
 
 	else
 
 		# Check if virustotal.com is reachable
-		#/sbin/ping -c 1 -W 5 virustotal.com > /dev/null 2>&1 # ICMP
 		/usr/bin/nc -z virustotal.com 443 -G1 > /dev/null 2>&1 # TCP
-		if ! [[ $? -eq 0 ]]; then
-			echo -e "\033[91m[Error] virustotal.com is NOT reachable!\033[0m"
-			echo "" && exit 1
+		if ! ping -c 1 virustotal.com &> /dev/null; then 
+    		echo -e "\033[91m[Error] virustotal.com is NOT reachable!\033[0m"
+    		echo
+    		exit 1 
 		fi
 
 		# Launch KnockKnock /w VirusTotal
 		echo "[Info]  Scanning Live System w/ KnockKnock [approx. 1-2 min] ..."
-		/usr/bin/sudo ./KnockKnock.app/Contents/MacOS/KnockKnock -whosthere -verbose -key "$VIRUSTOTAL" > "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE-verbose.json"
+		/usr/bin/sudo ./KnockKnock.app/Contents/MacOS/KnockKnock -whosthere -verbose -key "$VIRUSTOTAL" | /usr/bin/sudo /usr/bin/tee "$OUTPUT/KnockKnock/KnockKnock_Data/KnockKnock_Results_$DATE-verbose.json" > /dev/null
 	fi
 
-	cd $SCRIPT_DIR
+	cd "$SCRIPT_DIR" || exit
 
 else
 	echo "[Error] KnockKnock NOT found."
@@ -2901,9 +2993,9 @@ fi
 if [[ -d "$OUTPUT/KnockKnock/KnockKnock_Data" ]]; then
 	if [[ -n "$( ls -A "$OUTPUT/KnockKnock/KnockKnock_Data" )" ]]; then
 		echo "[Info]  Preparing Secure Archive Container ..."
-		cd "$OUTPUT/KnockKnock"
+		cd "$OUTPUT/KnockKnock" || exit
 		"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "KnockKnock_$SerialNumber.7z" "KnockKnock_Data/*" > /dev/null 2>&1
-		cd "$SCRIPT_DIR"
+		cd "$SCRIPT_DIR" || exit
 	else
 		echo "KnockKnock_Data is empty."
 	fi
@@ -2927,11 +3019,11 @@ if [[ -s $(/bin/ls -A "$FILE") ]]; then
 fi
 
 # Create Time
-BIRTH=$(TZ= /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+BIRTH=$(TZ='' /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Create Time: $BIRTH UTC"
 
 # Last Modified Time
-MODIFY=$(TZ= /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+MODIFY=$(TZ='' /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Last Modified Time: $MODIFY UTC"
 
 # Cleaning up
@@ -2941,8 +3033,8 @@ fi
 
 # Stats
 END_KNOCK=$(/bin/date +%s)
-ELAPSED_TIME_KNOCK=$(($END_KNOCK - $START_KNOCK))
-echo "KnockKnock Scan: $(($ELAPSED_TIME_KNOCK/60)) min $(($ELAPSED_TIME_KNOCK%60)) sec" >> "$OUTPUT"/Stats.txt
+ELAPSED_TIME_KNOCK=$((END_KNOCK - START_KNOCK))
+echo "KnockKnock Scan: $((ELAPSED_TIME_KNOCK/60)) min $((ELAPSED_TIME_KNOCK%60)) sec" >> "$OUTPUT"/Stats.txt
 
 }
 
@@ -2966,7 +3058,7 @@ if [[ -f "$FILE" ]]; then
 	
 	# Volume Configuration (Data Volume)
 	/bin/mkdir -p "$OUTPUT/Spotlight"
-	/usr/bin/sudo /usr/bin/defaults read "$FILE" > "$OUTPUT/Spotlight/VolumeConfiguration.txt"
+	/usr/bin/defaults read "$FILE" | /usr/bin/sudo /usr/bin/tee "$OUTPUT/Spotlight/VolumeConfiguration.txt" > /dev/null
 
 	# Universal Unique Identifier (Data Volume)
 	UUID=$(/usr/bin/sudo /usr/bin/defaults read "$FILE" ConfigurationVolumeUUID)
@@ -2994,7 +3086,7 @@ echo "[Info]  Collecting Spotlight Database [approx. 1-3 min] ..."
 SOURCE="/System/Volumes/Data/.Spotlight-V100/"
 DESTINATION="$OUTPUT/Spotlight/Spotlight_Data"
 if [[ -d "$SOURCE" ]] && [[ -n "$(/bin/ls -A "$SOURCE")" ]]; then
-	/usr/bin/sudo /usr/bin/rsync -av "$SOURCE" "$DESTINATION" >> "$OUTPUT/Spotlight/LogFile.txt"
+	/usr/bin/rsync -av "$SOURCE" "$DESTINATION" | /usr/bin/sudo /usr/bin/tee -a "$OUTPUT/Spotlight/LogFile.txt" > /dev/null
 fi
 
 # Creating read-only Disk Image (APFS)
@@ -3009,10 +3101,12 @@ FILE="$OUTPUT/Spotlight/Spotlight_$SerialNumber.dmg"
 if [[ -f "$FILE" ]]; then
 	BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
 	FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
-	echo "Spotlight_$SerialNumber.dmg ($FILESIZE)" > "$OUTPUT/Spotlight/DiskInfo.txt"
-	echo "MD5: $(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/Spotlight/DiskInfo.txt"
-	echo "SHA1: $(/usr/bin/openssl sha1 "$FILE" | /usr/bin/awk '{ print $2 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/Spotlight/DiskInfo.txt"
-	echo "SHA256: $(/usr/bin/openssl dgst -sha256 "$FILE" | /usr/bin/awk '{ print $2 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/Spotlight/DiskInfo.txt"
+	{
+		echo "RecentItems_$SerialNumber.dmg ($FILESIZE)"
+		echo "MD5: $(/sbin/md5 -q "$FILE" | /usr/bin/tr '[:lower:]' '[:upper:]')"
+		echo "SHA1: $(/usr/bin/openssl sha1 -r "$FILE" | /usr/bin/awk  '{print toupper($1)}')"
+		echo "SHA256: $(/usr/bin/openssl dgst -sha256 -r "$FILE" | /usr/bin/awk  '{print toupper($1)}')"
+	} > "$OUTPUT/Spotlight/DiskInfo.txt"
 fi
 
 # Image Info (DMG)
@@ -3024,9 +3118,9 @@ fi
 # Creating Secure Archive (DMG)
 FILE="$OUTPUT/Spotlight/Spotlight_$SerialNumber.dmg"
 if [[ -f "$FILE" ]]; then
-	cd "$OUTPUT/Spotlight"
+	cd "$OUTPUT/Spotlight" || exit
 	"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "Spotlight_$SerialNumber.dmg.7z" "$FILE" > /dev/null 2>&1
-	cd "$SCRIPT_DIR"
+	cd "$SCRIPT_DIR" || exit
 	
 	# Cleaning up 
 	/bin/rm -rf "$FILE"
@@ -3036,9 +3130,9 @@ fi
 if [[ -d "$OUTPUT/Spotlight/Spotlight_Data" ]]; then
 	if [[ -n "$( ls -A "$OUTPUT/Spotlight/Spotlight_Data" )" ]]; then
 		echo "[Info]  Preparing Secure Archive Container ..."
-		cd "$OUTPUT/Spotlight"
+		cd "$OUTPUT/Spotlight" || exit
 		"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "Spotlight_$SerialNumber.7z" "Spotlight_Data/*" > /dev/null 2>&1
-		cd "$SCRIPT_DIR"
+		cd "$SCRIPT_DIR" || exit
 	fi
 fi
 
@@ -3060,11 +3154,11 @@ if [[ -s $(/bin/ls -A "$FILE") ]]; then
 fi
 
 # Create Time
-BIRTH=$(TZ= /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+BIRTH=$(TZ='' /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Create Time: $BIRTH UTC"
 
 # Last Modified Time
-MODIFY=$(TZ= /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+MODIFY=$(TZ='' /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Last Modified Time: $MODIFY UTC"
 
 # Cleaning up
@@ -3079,13 +3173,13 @@ echo "[Info]  Performing Native Spotlight Searches ..."
 
 # MDItemWhereFroms
 # Describes where the item was obtained from. For example, a downloaded file may refer to the URL, files received by email may indicate the sender’s email address, message subject, etc.
-/usr/bin/sudo /usr/bin/mdfind -onlyin / -name "kMDItemWhereFroms == *" > "$OUTPUT/Spotlight/Searches/kMDItemWhereFroms.txt"
+/usr/bin/mdfind -onlyin / -name "kMDItemWhereFroms == *" | /usr/bin/sudo /usr/bin/tee "$OUTPUT/Spotlight/Searches/kMDItemWhereFroms.txt" > /dev/null
 
 # Count files with 'kMDItemWhereFroms' attribute
 FILE="$OUTPUT/Spotlight/Searches/kMDItemWhereFroms.txt"
 if [[ -s "$FILE" ]]; then
 	LINES=$(/bin/cat "$FILE" | /usr/bin/grep -c ^)
-	COUNT=$(/usr/bin/printf "%'d\n" $LINES | /usr/bin/tr -s "," ".")
+	COUNT=$(/usr/bin/printf "%'d\n" "$LINES" | /usr/bin/tr -s "," ".")
 	echo "[Info]  $COUNT Downloaded File(s) found (kMDItemWhereFroms)" # Downloaded from the Internet or transferred from an external source
 fi
 
@@ -3101,7 +3195,7 @@ echo "[Info]  Creating CSV Report(s) ..."
 echo "\"kMDItemDateAdded\",\"FilePath\",\"FileName\",\"kMDItemKind\",\"MD5\",\"SHA1\",\"SHA256\",\"kMDItemWhereFroms\",\"_kMDItemOwnerUserID\",\"UserName\",\"kMDItemLastUsedDate\",\"kMDItemUseCount\",\"QuarantineFlag\",\"QuarantineTimestamp\",\"Origin\",\"FileIdentifier\"" > "$OUTPUT_FOLDER/kMDItemWhereFroms.csv"
 
 # Data
-while read FILEPATH
+while read -r FILEPATH
 do
 	kMDItemDateAdded=$(/usr/bin/mdls -name kMDItemDateAdded "$FILEPATH" | /usr/bin/sed -e 's/.*= //g')
 	FileName=$(/usr/bin/basename "$FILEPATH")
@@ -3115,21 +3209,21 @@ do
 	kMDItemLastUsedDate=$(/usr/bin/mdls -name kMDItemLastUsedDate "$FILEPATH" | /usr/bin/sed -e 's/.*= //g' | sed 's/(null)//g')
 	kMDItemUseCount=$(/usr/bin/mdls -name kMDItemUseCount "$FILEPATH" | /usr/bin/sed -e 's/.*= //g' | sed 's/(null)//g')
 	Quarantine=$(/usr/bin/xattr -p com.apple.quarantine "$FILEPATH" 2> /dev/null)
-	QuarantineFlag=$(echo $Quarantine | /usr/bin/awk -F";" '{ print $1 }')
+	QuarantineFlag=$(echo "$Quarantine" | /usr/bin/awk -F";" '{ print $1 }')
 	if [[ ! -z "$Quarantine" ]]; then
-		Timestamp=$(echo $Quarantine | /usr/bin/awk -F";" '{ print $2 }')
-		EpochTimestamp=$(echo $((0x$Timestamp)))
-		QuarantineTimestamp=$(date -r $EpochTimestamp '+%F %H:%M:%S')
+		Timestamp=$(echo "$Quarantine" | /usr/bin/awk -F";" '{ print $2 }')
+		EpochTimestamp=$((0x$Timestamp))
+		QuarantineTimestamp=$(date -r "$EpochTimestamp" '+%F %H:%M:%S')
 	fi
-	Origin=$(echo $Quarantine | /usr/bin/awk -F";" '{ print $3 }')
-	FileIdentifier=$(echo $Quarantine | /usr/bin/awk -F";" '{ print $4 }')
-	echo \"$kMDItemDateAdded\",\"$FileName\",\"$FILEPATH\",\"$kMDItemKind\",\"$MD5\",\"$SHA1\",\"$SHA256\",\"$kMDItemWhereFroms\",\"$_kMDItemOwnerUserID\",\"$UserName\",\"$kMDItemLastUsedDate\",\"$kMDItemUseCount\",\"$QuarantineFlag\",\"$QuarantineTimestamp\",\"$Origin\",\"$FileIdentifier\" >> "$OUTPUT_FOLDER/kMDItemWhereFroms.csv"
+	Origin=$(echo "$Quarantine" | /usr/bin/awk -F";" '{ print $3 }')
+	FileIdentifier=$(echo "$Quarantine" | /usr/bin/awk -F";" '{ print $4 }')
+	echo "\"$kMDItemDateAdded\",\"$FileName\",\"$FILEPATH\",\"$kMDItemKind\",\"$MD5\",\"$SHA1\",\"$SHA256\",\"$kMDItemWhereFroms\",\"$_kMDItemOwnerUserID\",\"$UserName\",\"$kMDItemLastUsedDate\",\"$kMDItemUseCount\",\"$QuarantineFlag\",\"$QuarantineTimestamp\",\"$Origin\",\"$FileIdentifier\"" >> "$OUTPUT_FOLDER/kMDItemWhereFroms.csv"
 done < "$OUTPUT/Spotlight/Searches/kMDItemWhereFroms.txt"
 
 # Stats
 END_SPOTLIGHT=$(/bin/date +%s)
-ELAPSED_TIME_SPOTLIGHT=$(($END_SPOTLIGHT - $START_SPOTLIGHT))
-echo "Spotlight Database Collection: $(($ELAPSED_TIME_SPOTLIGHT/60)) min $(($ELAPSED_TIME_SPOTLIGHT%60)) sec" >> "$OUTPUT"/Stats.txt
+ELAPSED_TIME_SPOTLIGHT=$((END_SPOTLIGHT - START_SPOTLIGHT))
+echo "Spotlight Database Collection: $((ELAPSED_TIME_SPOTLIGHT/60)) min $((ELAPSED_TIME_SPOTLIGHT%60)) sec" >> "$OUTPUT"/Stats.txt
 
 }
 
@@ -3232,9 +3326,9 @@ done
 if [[ -d "$OUTPUT/Notifications/Notifications_Data" ]]; then
 	if [[ -n "$( ls -A "$OUTPUT/Notifications/Notifications_Data" )" ]]; then
 		echo "[Info]  Preparing Secure Archive Container ..."
-		cd "$OUTPUT/Notifications"
+		cd "$OUTPUT/Notifications" || exit
 		"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "Notifications_$SerialNumber.7z" "Notifications_Data/*" > /dev/null 2>&1
-		cd "$SCRIPT_DIR"
+		cd "$SCRIPT_DIR" || exit
 	fi
 fi
 
@@ -3256,11 +3350,11 @@ if [[ -s $(/bin/ls -A "$FILE") ]]; then
 fi
 
 # Create Time
-BIRTH=$(TZ= /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+BIRTH=$(TZ='' /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Create Time: $BIRTH UTC"
 
 # Last Modified Time
-MODIFY=$(TZ= /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+MODIFY=$(TZ='' /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Last Modified Time: $MODIFY UTC"
 
 # Cleaning up
@@ -3271,8 +3365,8 @@ fi
 
 # Stats
 END_NOTIFICATIONS=$(/bin/date +%s)
-ELAPSED_TIME_NOTIFICATIONS=$(($END_NOTIFICATIONS - $START_NOTIFICATIONS))
-echo "Notification Center Database Collection: $(($ELAPSED_TIME_NOTIFICATIONS/60)) min $(($ELAPSED_TIME_NOTIFICATIONS%60)) sec" >> "$OUTPUT"/Stats.txt
+ELAPSED_TIME_NOTIFICATIONS=$((END_NOTIFICATIONS - START_NOTIFICATIONS))
+echo "Notification Center Database Collection: $((ELAPSED_TIME_NOTIFICATIONS/60)) min $((ELAPSED_TIME_NOTIFICATIONS%60)) sec" >> "$OUTPUT"/Stats.txt
 
 }
 
@@ -3327,10 +3421,12 @@ FILE="$OUTPUT/RecentItems/RecentItems_Data/RecentItems_$SerialNumber.dmg"
 if [[ -f "$FILE" ]]; then
 	BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
 	FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
-	echo "RecentItems_$SerialNumber.dmg ($FILESIZE)" > "$OUTPUT/RecentItems/DiskInfo.txt"
-	echo "MD5: $(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/RecentItems/DiskInfo.txt"
-	echo "SHA1: $(/usr/bin/openssl sha1 "$FILE" | /usr/bin/awk '{ print $2 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/RecentItems/DiskInfo.txt"
-	echo "SHA256: $(/usr/bin/openssl dgst -sha256 "$FILE" | /usr/bin/awk '{ print $2 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')" >> "$OUTPUT/RecentItems/DiskInfo.txt"
+	{
+		echo "RecentItems_$SerialNumber.dmg ($FILESIZE)"
+		echo "MD5: $(/sbin/md5 -q "$FILE" | /usr/bin/tr '[:lower:]' '[:upper:]')"
+		echo "SHA1: $(/usr/bin/openssl sha1 -r "$FILE" | /usr/bin/awk '{print toupper($1)}')"
+		echo "SHA256: $(/usr/bin/openssl dgst -sha256 -r "$FILE" | /usr/bin/awk '{print toupper($1)}')"
+	} > "$OUTPUT/RecentItems/DiskInfo.txt"
 fi
 
 # Image Info (DMG)
@@ -3342,9 +3438,9 @@ fi
 # Creating Secure Archive (DMG)
 FILE="$OUTPUT/RecentItems/RecentItems_Data/RecentItems_$SerialNumber.dmg"
 if [[ -f "$FILE" ]]; then
-	cd "$OUTPUT/RecentItems"
+	cd "$OUTPUT/RecentItems" || exit
 	"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "RecentItems_$SerialNumber.dmg.7z" "$FILE" > /dev/null 2>&1
-	cd "$SCRIPT_DIR"
+	cd "$SCRIPT_DIR" || exit
 	
 	# Cleaning up 
 	/bin/rm -rf "$FILE"
@@ -3354,9 +3450,9 @@ fi
 if [[ -d "$OUTPUT/RecentItems/RecentItems_Data" ]]; then
 	if [[ -n "$( ls -A "$OUTPUT/RecentItems/RecentItems_Data" )" ]]; then
 		echo "[Info]  Preparing Secure Archive Container ..."
-		cd "$OUTPUT/RecentItems"
+		cd "$OUTPUT/RecentItems" || exit
 		"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "RecentItems_$SerialNumber.7z" "RecentItems_Data/*" > /dev/null 2>&1
-		cd "$SCRIPT_DIR"
+		cd "$SCRIPT_DIR" || exit
 	fi
 fi
 
@@ -3378,11 +3474,11 @@ if [[ -s $(/bin/ls -A "$FILE") ]]; then
 fi
 
 # Create Time
-BIRTH=$(TZ= /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+BIRTH=$(TZ='' /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Create Time: $BIRTH UTC"
 
 # Last Modified Time
-MODIFY=$(TZ= /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+MODIFY=$(TZ='' /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Last Modified Time: $MODIFY UTC"
 
 # Cleaning up
@@ -3393,8 +3489,8 @@ fi
 
 # Stats
 END_RECENT=$(/bin/date +%s)
-ELAPSED_TIME_RECENT=$(($END_RECENT - $START_RECENT))
-echo "Recent Items Collection: $(($ELAPSED_TIME_RECENT/60)) min $(($ELAPSED_TIME_RECENT%60)) sec" >> "$OUTPUT"/Stats.txt
+ELAPSED_TIME_RECENT=$((END_RECENT - START_RECENT))
+echo "Recent Items Collection: $((ELAPSED_TIME_RECENT/60)) min $((ELAPSED_TIME_RECENT%60)) sec" >> "$OUTPUT"/Stats.txt
 
 }
 
@@ -3446,7 +3542,7 @@ if [[ -f "$TRUETREE" ]]; then
 
 	# Timeline (Non-Tree Mode)
 	# Note: Does not collect a tree. Instead just prints processes sorted by creation time
-	/usr/bin/sudo "$TRUETREE" --timeline > "$OUTPUT/TrueTree/TrueTree_Data/TrueTree-Timeline.txt" 2> /dev/null
+	/usr/bin/sudo "$TRUETREE" --timeline 2> /dev/null | /usr/bin/sudo /usr/bin/tee "$OUTPUT/TrueTree/TrueTree_Data/TrueTree-Timeline.txt" > /dev/null
 
 	# Timestamps (including process timestamps)
 	# Note: For output in either format with process create time added use the --timestamps option
@@ -3473,9 +3569,9 @@ fi
 if [[ -d "$OUTPUT/TrueTree/TrueTree_Data" ]]; then
 	if [[ -n "$( ls -A "$OUTPUT/TrueTree/TrueTree_Data" )" ]]; then
 		echo "[Info]  Preparing Secure Archive Container ..."
-		cd "$OUTPUT/TrueTree"
+		cd "$OUTPUT/TrueTree" || exit
 		"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "TrueTree_$SerialNumber.7z" "TrueTree_Data/*" > /dev/null 2>&1
-		cd "$SCRIPT_DIR"
+		cd "$SCRIPT_DIR" || exit
 	fi
 fi
 
@@ -3497,11 +3593,11 @@ if [[ -s $(/bin/ls -A "$FILE") ]]; then
 fi
 
 # Create Time
-BIRTH=$(TZ= /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+BIRTH=$(TZ='' /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Create Time: $BIRTH UTC"
 
 # Last Modified Time
-MODIFY=$(TZ= /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+MODIFY=$(TZ='' /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Last Modified Time: $MODIFY UTC"
 
 # Cleaning up
@@ -3512,10 +3608,90 @@ fi
 
 # Stats
 END_TRUETREE=$(/bin/date +%s)
-ELAPSED_TIME_TRUETREE=$(($END_TRUETREE - $START_TRUETREE))
-echo "TrueTree Snapshot Collection: $(($ELAPSED_TIME_TRUETREE/60)) min $(($ELAPSED_TIME_TRUETREE%60)) sec" >> "$OUTPUT"/Stats.txt
+ELAPSED_TIME_TRUETREE=$((END_TRUETREE - START_TRUETREE))
+echo "TrueTree Snapshot Collection: $((ELAPSED_TIME_TRUETREE/60)) min $((ELAPSED_TIME_TRUETREE%60)) sec" >> "$OUTPUT"/Stats.txt
 
 }
+
+#############################################################
+#############################################################
+
+Biome() {
+
+# Stats
+START_BIOME=$(/bin/date +%s)
+
+# Biome Data
+echo "[Info]  Collecting User-Specific Biome Data ..."
+/bin/mkdir -p "$OUTPUT/Biome/Biome_Data/"
+
+# App.MenuItem is a new Biome stream introduced in macOS 26 (Tahoe) that logs the specific menu items a user selects across the operating system, along with timestamps.
+# https://unit42.paloaltonetworks.com/new-macos-artifact-discovered/
+# https://github.com/cclgroupltd/ccl-segb
+
+# App.MenuItem (Apple Biome Stream)
+/bin/mkdir -p "$OUTPUT/Biome/Biome_Data/App.MenuItem"
+for UserName in $(/usr/bin/dscl . list /Users UniqueID | /usr/bin/awk '$2 > 500 {print $1}')
+do
+	# Collecting App.MenuItem Artifacts (Biome)
+	/bin/mkdir -p "$OUTPUT/Biome/Biome_Data/App.MenuItem/$UserName/"
+	SOURCE="/Users/$UserName/Library/Biome/streams/restricted/App.MenuItem/local/"
+	DESTINATION="$OUTPUT/Biome/Biome_Data/App.MenuItem/$UserName/"
+	if [[ -d "$SOURCE" ]] && [[ -n "$(/bin/ls -A "$SOURCE")" ]]; then
+		/usr/bin/sudo /usr/bin/rsync -av "$SOURCE" "$DESTINATION" > /dev/null # SEGB (Segmented Binary) --> .segb
+	fi
+done
+
+# Creating Secure Archive
+if [[ -d "$OUTPUT/Biome/Biome_Data" ]]; then
+	if [[ -n "$( ls -A "$OUTPUT/Biome/Biome_Data" )" ]]; then
+		echo "[Info]  Preparing Secure Archive Container ..."
+		cd "$OUTPUT/Biome" || exit
+		"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "Biome_$SerialNumber.7z" "Biome_Data/*" > /dev/null 2>&1
+		cd "$SCRIPT_DIR" || exit
+	fi
+fi
+
+# Archive Name
+ARCHIVE=$(/bin/ls -l "$OUTPUT/Biome" | /usr/bin/awk '{ print $9 }' | /usr/bin/grep "^Biome_.*.7z$")
+echo "[Info]  Archive Name: $ARCHIVE"
+
+# Archive Size
+FILE="$OUTPUT/Biome/$ARCHIVE"
+BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
+FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
+echo "[Info]  Archive Size: $FILESIZE"
+
+# MD5 Calculation
+if [[ -s $(/bin/ls -A "$FILE") ]]; then
+	echo "[Info]  Calculating MD5 checksum of Biome Archive ..."
+	MD5=$(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
+	echo "[Info]  MD5 Hash: $MD5"
+fi
+
+# Create Time
+BIRTH=$(TZ='' /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+echo "[Info]  Create Time: $BIRTH UTC"
+
+# Last Modified Time
+MODIFY=$(TZ='' /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+echo "[Info]  Last Modified Time: $MODIFY UTC"
+
+# Cleaning up
+FOLDER="$OUTPUT/Biome/Biome_Data"
+if [[ -d "$FOLDER" ]]; then
+	/bin/rm -rf "$FOLDER"
+fi
+
+# Stats
+END_BIOME=$(/bin/date +%s)
+ELAPSED_TIME_BIOME=$((END_BIOME - START_BIOME))
+echo "Biome Data Collection:        $((ELAPSED_TIME_BIOME/60)) min $((ELAPSED_TIME_BIOME%60)) sec" >> "$OUTPUT"/Stats.txt
+
+}
+
+# TODO
+# - Count BIOME Artifacts???
 
 #############################################################
 #############################################################
@@ -3526,8 +3702,8 @@ echo ""
 echo "FINISHED!"
 
 # Time Duration
-ELAPSED_TIME=$(($SECONDS - $START_TIME))
-echo "Overall analysis duration: $(($ELAPSED_TIME/60)) min $(($ELAPSED_TIME%60)) sec"
+ELAPSED_TIME=$((SECONDS - START_TIME))
+echo "Overall analysis duration: $((ELAPSED_TIME/60)) min $((ELAPSED_TIME%60)) sec"
 
 # screenlog.txt
 /bin/cp "$SCRIPT_DIR"/screenlog-draft.txt "$OUTPUT"/
@@ -3538,7 +3714,7 @@ echo "Overall analysis duration: $(($ELAPSED_TIME/60)) min $(($ELAPSED_TIME%60))
 
 # Change permissions of output files
 LoggedInUser=$(/usr/bin/stat -f %Su /dev/console)
-/usr/bin/sudo /usr/sbin/chown -R $LoggedInUser "$SCRIPT_DIR/output/"
+/usr/bin/sudo /usr/sbin/chown -R "$LoggedInUser" "$SCRIPT_DIR/output/"
 
 }
 
@@ -3548,7 +3724,7 @@ LoggedInUser=$(/usr/bin/stat -f %Su /dev/console)
 # Main
 
 case "${1}" in
-	-a|--analyze)
+	--analyze)
 	{
 	Header
 	Check_Admin
@@ -3558,7 +3734,19 @@ case "${1}" in
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
 	;;
-	-b|--btm)
+	--biome)
+	{
+	Header
+	Check_Admin
+	Check_FDA
+	Verify_7zz
+	Output
+	BasicInfo
+	Biome
+	Footer
+	} 2>&1 | /usr/bin/tee screenlog-draft.txt
+	;;
+	--btm)
 	{
 	Header
 	Check_Admin
@@ -3569,7 +3757,7 @@ case "${1}" in
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
 	;;
-	-c|--collect)
+	--collect)
 	{
 	Header
 	Check_Admin
@@ -3581,7 +3769,7 @@ case "${1}" in
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
 	;;
-	-d|--ds_store)
+	--ds_store)
 	{
 	Header
 	Check_Admin
@@ -3593,7 +3781,7 @@ case "${1}" in
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
 	;;
-	-f|--fsevents)
+	--fsevents)
 	{
 	Header
 	Check_Admin
@@ -3604,7 +3792,7 @@ case "${1}" in
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
 	;;
-	-i|--info)
+	--info)
 	{
 	Header
 	Check_Admin
@@ -3615,7 +3803,7 @@ case "${1}" in
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
 	;;
-	-k|--knockknock)
+	--knockknock)
 	{
 	Header
 	Check_Admin
@@ -3627,7 +3815,7 @@ case "${1}" in
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
 	;;
-	-l|--logs)
+	--logs)
 	{
 	Header
 	Check_Admin
@@ -3638,7 +3826,7 @@ case "${1}" in
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
 	;;
-	-m|--metadata)
+	--metadata)
 	{
 	Header
 	Check_Admin
@@ -3650,7 +3838,7 @@ case "${1}" in
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
 	;;
-	-n|--notifications)
+	--notifications)
 	{
 	Header
 	Check_Admin
@@ -3661,7 +3849,7 @@ case "${1}" in
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
 	;;
-	-p|--processes)
+	--processes)
 	{
 	Header
 	Check_Admin
@@ -3672,7 +3860,7 @@ case "${1}" in
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
 	;;
-	-r|--recentitems)
+	--recentitems)
 	{
 	Header
 	Check_Admin
@@ -3683,7 +3871,7 @@ case "${1}" in
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
 	;;
-	-s|--sysdiagnose)
+	--sysdiagnose)
 	{
 	Header
 	Check_Admin
@@ -3694,7 +3882,7 @@ case "${1}" in
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
 	;;
-	-t|--triage)
+	--triage)
 	{
 	Header
 	Check_Admin
@@ -3712,6 +3900,7 @@ case "${1}" in
 	Spotlight
 	Notifications
 	TrueTree
+	Biome
 	Footer
 	} 2>&1 | /usr/bin/tee screenlog-draft.txt
 	;;
@@ -3721,7 +3910,7 @@ case "${1}" in
 	;;
 	"")
 	Header
-	echo "[Error] You must specify something to do (try -h)"
+	echo "[Error] You must specify something to do (try --help)"
 	echo ""
 	;;
 	*)
