@@ -79,16 +79,31 @@ sudo bash macos-collector.sh --triage
 ![Spotlight](https://github.com/user-attachments/assets/17dddf9f-819d-4c6b-a7ea-417ec469d0b8)  
 **Fig 10:** Spotlight Database File Collection (incl. Live Searches)  
 
-![System-Info](https://github.com/user-attachments/assets/b98703af-06f2-48e2-b1d9-ab816e1353bd)  
-**Fig 11:** System Information Collection  
+![SystemInfo-1](https://github.com/user-attachments/assets/e4a3c93b-4dcb-42f4-9233-460fc500bb8a)  
+**Fig 11:** System Information Collection &#8594; XProtect is up to date
+
+![SystemInfo-2](https://github.com/user-attachments/assets/551dc86e-e0e3-4646-98d6-1ef6d19cdfba)  
+**Fig 12:** System Information Collection &#8594; XProtect Update available
 
 ![Recent-Items](https://github.com/user-attachments/assets/81d8f279-68e0-4af5-ae18-4c06dddec8e7)  
-**Fig 12:** Recent Items Collection  
+**Fig 13:** Recent Items Collection  
 
 ![TrueTree](https://github.com/user-attachments/assets/78137d73-362f-4cbf-81c7-b66ea3b31549)  
-**Fig 13:** TrueTree Snapshot Collection  
+**Fig 14:** TrueTree Snapshot Collection  
+
+![Notifications](https://github.com/user-attachments/assets/502af79f-824e-47d6-ba4c-5cdbe57dca51)  
+**Fig 15:** Notification Center Database File Collection  
+
+![Biome](https://github.com/user-attachments/assets/4bb3d8dd-8c2f-47ce-9e99-1ff16878d63a)  
+**Fig 16:** Biome Data Collection (App.MenuItem)    
 
 ## Dependencies
+7-Zip v26.00 Console Version (2026-02-12)  
+MD5: DCACF43BE9AC2034815CFEA7E8C89803  
+SHA1: FC8C7FF0F197E7034C3005DF0F653DBFDCCC83EF  
+SHA256: A00F6D085A82A95F6DFC69EA150E05234A12B6D5D134325DDDB964CAE6817488  
+https://www.7-zip.org/download.html  
+
 Aftermath v2.3.0 (2025-09-24)  
 MD5: A0668EB91650513F40CE8753A277E0E0  
 SHA1: 782077A3FE5351C72157142C437EA5D20BEF00E9  
