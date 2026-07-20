@@ -49,7 +49,7 @@ sudo bash macos-collector.sh --triage
 
 </br>
 
-![Help-Message](https://github.com/user-attachments/assets/83e6d18e-55e8-4d4a-a924-58ef630feafd)  
+![Help-Message](https://github.com/user-attachments/assets/182983c2-854e-4445-b14c-1bb35c07680d)  
 **Fig 1:** Help Message  
 
 ![Aftermath-Collection](https://github.com/user-attachments/assets/27d73f2d-c139-446d-b1b6-20f0d4a52fb8)  
