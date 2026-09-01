@@ -12,10 +12,13 @@ Download the latest version of **macos-collector** from the [Releases](https://g
 > macos-collector includes all external tools by default.  
 
 > [!NOTE]
-`Default Archive Password:` IncidentResponse `Quarantine Files Password:` infected  
+Default Archive Password: `IncidentResponse`  
+
+> [!NOTE]
+Quarantine Files Password: `infected`  
 
 > [!TIP]
-> macos-collector will write the output directly to the current working directory. It is recommended to run the tool from a remote location or external device (such as a USB flash drive) to reduce writing to the actual disk on the target endpoint.  
+> By default, macos-collector will write the output directly to the current working directory. It is recommended to run the tool from a remote location or external device (such as a USB flash drive) to reduce writing to the actual disk on the target endpoint.  
 
 > [!IMPORTANT]
 > Aftermath needs to be root, as well as have full disk access (FDA) in order to run. FDA can be granted to the Terminal application in which it is running. 
