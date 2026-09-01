@@ -12,7 +12,7 @@ Download the latest version of **macos-collector** from the [Releases](https://g
 > macos-collector includes all external tools by default.  
 
 > [!NOTE]
-`Default Archive Password:` IncidentResponse, `Quarantine Files Password:` infected  
+`Default Archive Password:` IncidentResponse `Quarantine Files Password:` infected  
 
 > [!TIP]
 > macos-collector will write the output directly to the current working directory. It is recommended to run the tool from a remote location or external device (such as a USB flash drive) to reduce writing to the actual disk on the target endpoint.  
@@ -93,8 +93,8 @@ sudo bash macos-collector.sh --uac --output-path "/Users/<user>/Desktop/"
 ![Recent-Items](https://github.com/user-attachments/assets/81d8f279-68e0-4af5-ae18-4c06dddec8e7)  
 **Fig 13:** Recent Items Collection  
 
-![TrueTree](https://github.com/user-attachments/assets/78137d73-362f-4cbf-81c7-b66ea3b31549)  
-**Fig 14:** TrueTree Snapshot Collection  
+![TrueTree](https://github.com/user-attachments/assets/e094f79c-1250-4e3f-9cf6-97d453778542)  
+**Fig 14:** TrueTree Snapshot Collection (incl. General Process Information)  
 
 ![Notifications](https://github.com/user-attachments/assets/502af79f-824e-47d6-ba4c-5cdbe57dca51)  
 **Fig 15:** Notification Center Database File Collection  
