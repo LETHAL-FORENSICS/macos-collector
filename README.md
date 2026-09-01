@@ -24,7 +24,7 @@ Download the latest version of **macos-collector** from the [Releases](https://g
 
 ## Usage  
 ```Shell
-sudo bash macos-collector.sh [OPTION]
+sudo bash macos-collector.sh [OPTION] [--output-path PATH]
 ```
 
 Example 1 - Collect forensic artifacts from a compromised macOS endpoint using Aftermath  
@@ -44,12 +44,17 @@ sudo bash macos-collector.sh --fsevents
 
 Example 4 - Collect ALL supported macOS Forensic Artifacts     
 ```Shell
-sudo bash macos-collector.sh --triage  
+sudo bash macos-collector.sh --triage --output-path "/Volumes/T9/"    
+```
+
+Example 5 - Collect Forensic Artifacts w/ UAC (Unix-like Artifacts Collector)    
+```Shell
+sudo bash macos-collector.sh --uac --output-path "/Users/<user>/Desktop/"  
 ```
 
 </br>
 
-![Help-Message](https://github.com/user-attachments/assets/182983c2-854e-4445-b14c-1bb35c07680d)  
+![Help-Message](https://github.com/user-attachments/assets/76dc605c-725a-4284-a763-b2ffa9453cd0)  
 **Fig 1:** Help Message  
 
 ![Aftermath-Collection](https://github.com/user-attachments/assets/27d73f2d-c139-446d-b1b6-20f0d4a52fb8)  
@@ -94,14 +99,17 @@ sudo bash macos-collector.sh --triage
 ![Notifications](https://github.com/user-attachments/assets/502af79f-824e-47d6-ba4c-5cdbe57dca51)  
 **Fig 15:** Notification Center Database File Collection  
 
-![Biome](https://github.com/user-attachments/assets/4bb3d8dd-8c2f-47ce-9e99-1ff16878d63a)  
-**Fig 16:** Biome Data Collection (App.MenuItem)    
+![Biome](https://github.com/user-attachments/assets/c4a3022c-9f68-4c36-b3da-257695bdc084)  
+**Fig 16:** Biome Data Collection (incl. Biome Timeline)    
+
+![UAC](https://github.com/user-attachments/assets/1394552f-f5f3-4f96-a73c-4424c08e083e)  
+**Fig 17:** Unix-like Artifacts Collector (UAC)    
 
 ## Dependencies
-7-Zip v26.00 Console Version (2026-02-12)  
-MD5: DCACF43BE9AC2034815CFEA7E8C89803  
-SHA1: FC8C7FF0F197E7034C3005DF0F653DBFDCCC83EF  
-SHA256: A00F6D085A82A95F6DFC69EA150E05234A12B6D5D134325DDDB964CAE6817488  
+7-Zip v26.02 Console Version (2026-06-25)  
+MD5: CBBA6B6C2F2C37EAEE2167BF847570BB  
+SHA1: 6BACAAB15E4E1A1048066589FFC9892EFEEDFF2C  
+SHA256: 9C56CF3379A0D8544E9244958B96FDC7C17F9CE70F5A160EB2B41F5F3DF96D8C  
 https://www.7-zip.org/download.html  
 
 Aftermath v2.3.0 (2025-09-24)  
@@ -122,6 +130,12 @@ SHA1: BF701DABCFBD816425FB827B75B011773D9283AD
 SHA256: C6CE708937EFAC833DA6A0B6F4FC1A91EB38F8D456317BCF68B27CF57CB581C6
 https://github.com/themittenmac/TrueTree  
 
+UAC v3.3.0 (2026-04-15)  
+MD5: 89FA49B5903EA9EA230EBC7B2FC056DC  
+SHA1: FACDC04D6A04C0A59CA5E20553B41623EAFA2FC7  
+SHA256: 5BC89A49DE4274CCDBCA0728BE9F2B4FAF3709B3282D1F1644BC05B5E5A3C3B8  
+https://github.com/tclahr/uac  
+
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.  
 
@@ -132,3 +146,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 [The Mitten Mac - Incident Response and Threat Hunting Knowledge for macOs](https://themittenmac.com/)  
 [What Happened?: Swiftly Investigating macOS Security Incidents with Aftermath | JNUC 2023](https://www.youtube.com/watch?v=lvfQMnkOZDM)  
 [KnockKnock - Persistence Enumerator by Objective-See](https://objective-see.org/products/knockknock.html)  
+[Biome Timeline by Mahmoud Swelam](https://github.com/cocopollo/Biome_Timeline)  

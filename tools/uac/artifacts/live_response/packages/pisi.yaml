@@ -1,0 +1,10 @@
+version: 2.0
+condition: command_exists "pisi"
+output_directory: /live_response/packages
+artifacts:
+  -
+    description: Display installed packages.
+    supported_os: [linux]
+    collector: command
+    command: pisi list
+    output_file: pisi_list.txt

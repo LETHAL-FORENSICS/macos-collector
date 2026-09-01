@@ -1,0 +1,11 @@
+version: 2.0
+condition: command_exists "pvdisplay"
+output_directory: /live_response/storage
+artifacts:
+  -
+    description: Display various attributes of physical volumes.
+    supported_os: [linux]
+    collector: command
+    command: pvdisplay
+    output_file: pvdisplay.txt
+  

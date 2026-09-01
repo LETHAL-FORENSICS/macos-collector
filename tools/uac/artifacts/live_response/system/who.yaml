@@ -1,0 +1,23 @@
+version: 4.0
+condition: command_exists "who"
+output_directory: /live_response/system
+artifacts:
+  -
+    description: Display the current run-level of the process.
+    supported_os: [aix]
+    collector: command
+    command: who -r
+    output_file: who_-r.txt
+  -
+    description: Show failed login attempts.
+    supported_os: [aix]
+    collector: command
+    command: who %mount_point%/etc/security/failedlogin
+    output_file: who_etc_security_failedlogin.txt
+  -
+    description: Show who is logged on.
+    supported_os: [all]
+    collector: command
+    command: who -T
+    output_file: who_-T.txt
+  

@@ -1,0 +1,10 @@
+version: 2.0
+condition: command_exists "sw_vers"
+output_directory: /live_response/system
+artifacts:
+  -
+    description: Display macOS operating system version.
+    supported_os: [macos]
+    collector: command
+    command: sw_vers
+    output_file: sw_vers.txt

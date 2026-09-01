@@ -1,0 +1,11 @@
+version: 2.0
+condition: command_exists "vmctl"
+output_directory: /live_response/vms
+artifacts:
+  -
+    description: List running virtual machines on this system.
+    supported_os: [openbsd]
+    collector: command
+    command: vmctl status
+    output_file: vmctl_status.txt
+ 

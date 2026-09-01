@@ -1,0 +1,10 @@
+version: 2.0
+condition: command_exists "ioreg"
+output_directory: /live_response/hardware
+artifacts:
+  -
+    description: Display I/O Kit registry.
+    supported_os: [macos]
+    collector: command
+    command: ioreg -l
+    output_file: ioreg_-l.txt

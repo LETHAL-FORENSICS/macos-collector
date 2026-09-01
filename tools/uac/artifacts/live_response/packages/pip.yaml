@@ -1,0 +1,17 @@
+version: 2.0
+condition: command_exists "pip"
+output_directory: /live_response/packages
+artifacts:
+  -
+    description: Display Python packages installed through pip.
+    supported_os: [all]
+    collector: command
+    command: pip list
+    output_file: pip_list.txt
+  -
+    description: Display Python packages installed through pip.
+    supported_os: [all]
+    collector: command
+    command: pip list -v
+    output_file: pip_list_-v.txt
+  

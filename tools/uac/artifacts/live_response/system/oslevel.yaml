@@ -1,0 +1,23 @@
+version: 2.0
+condition: command_exists "oslevel"
+output_directory: /live_response/system
+artifacts:
+  -
+    description: Display the latest installed level (technology level, maintenance level and service pack) of the system.
+    supported_os: [aix]
+    collector: command
+    command: oslevel
+    output_file: oslevel.txt
+  -
+    description: Display the latest installed level (technology level, maintenance level and service pack) of the system.
+    supported_os: [aix]
+    collector: command
+    command: oslevel -r
+    output_file: oslevel_-r.txt
+  -
+    description: Display the latest installed level (technology level, maintenance level and service pack) of the system.
+    supported_os: [aix]
+    collector: command
+    command: oslevel -s
+    output_file: oslevel_-s.txt
+  

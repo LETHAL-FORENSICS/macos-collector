@@ -1,0 +1,16 @@
+version: 2.0
+condition: command_exists "prtconf"
+output_directory: /live_response/hardware
+artifacts:
+  -
+    description: Display system configuration information.
+    supported_os: [aix, solaris]
+    collector: command
+    command: prtconf
+    output_file: prtconf.txt
+  -
+    description: Display system configuration information.
+    supported_os: [aix, solaris]
+    collector: command
+    command: prtconf -v
+    output_file: prtconf_-v.txt

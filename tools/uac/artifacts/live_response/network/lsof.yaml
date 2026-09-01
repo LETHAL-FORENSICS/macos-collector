@@ -1,0 +1,16 @@
+version: 4.0
+condition: command_exists "lsof"
+output_directory: /live_response/network
+artifacts:
+  -
+    description: Collect the listing of all Internet network files.
+    supported_os: [aix, esxi, freebsd, linux, macos, netbsd, netscaler, openbsd, solaris]
+    collector: command
+    command: lsof -nPli
+    output_file: lsof_-nPli.txt
+  -
+    description: Collect the listing of UNIX domain socket files.
+    supported_os: [aix, esxi, freebsd, linux, macos, netbsd, netscaler, openbsd, solaris]
+    collector: command
+    command: lsof -U
+    output_file: lsof_-U.txt

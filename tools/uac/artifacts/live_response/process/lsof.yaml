@@ -1,0 +1,11 @@
+version: 3.0
+condition: command_exists "lsof"
+output_directory: /live_response/process
+artifacts:
+  -
+    description: Collect the list open files.
+    supported_os: [aix, esxi, freebsd, linux, macos, netscaler, openbsd, solaris]
+    collector: command
+    command: lsof -nPl
+    output_file: lsof_-nPl.txt
+  

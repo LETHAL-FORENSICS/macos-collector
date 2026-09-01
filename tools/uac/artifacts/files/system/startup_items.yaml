@@ -1,0 +1,33 @@
+version: 4.2
+artifacts:
+  -
+    description: Collect Startup Items configuration files.
+    supported_os: [macos]
+    collector: file
+    path: /Library/StartupItems
+    ignore_date_range: true
+  -
+    description: Collect Agents configuration files.
+    supported_os: [macos]
+    collector: file
+    path: /Library/LaunchAgents /System/Library/LaunchAgents /Library/Apple/System/Library/LaunchAgents
+    ignore_date_range: true
+  -
+    description: Collect Agents configuration files.
+    supported_os: [macos]
+    collector: file
+    path: %user_home%/Library/LaunchAgents
+    ignore_date_range: true
+  -
+    description: Collect Daemons configuration files.
+    supported_os: [macos]
+    collector: file
+    path: /Library/LaunchDaemons /System/Library/LaunchDaemons /Library/Apple/System/Library/LaunchDaemons
+    ignore_date_range: true
+  -
+    description: Collect login items installed using the Service Management framework.
+    supported_os: [macos]
+    collector: file
+    path: /private/var/db/com.apple.xpc.launchd
+    name_pattern: ["loginitems.*.plist"]
+    ignore_date_range: true

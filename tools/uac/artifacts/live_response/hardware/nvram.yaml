@@ -1,0 +1,10 @@
+version: 2.0
+condition: command_exists "nvram"
+output_directory: /live_response/hardware
+artifacts:
+  -
+    description: Print all of the firmware variables.
+    supported_os: [macos]
+    collector: command
+    command: nvram -p
+    output_file: nvram_-p.txt

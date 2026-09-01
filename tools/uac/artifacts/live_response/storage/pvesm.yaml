@@ -1,0 +1,11 @@
+version: 2.0
+condition: command_exists "pvesm"
+output_directory: /live_response/storage
+artifacts:
+  -
+    description: Get status for all Proxmox VE datastores.
+    supported_os: [linux]
+    collector: command
+    command: pvesm status
+    output_file: pvesm_status.txt
+    

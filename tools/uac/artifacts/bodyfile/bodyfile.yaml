@@ -1,0 +1,11 @@
+version: 4.0
+output_directory: /bodyfile
+artifacts:
+  -
+    description: Collect file stat information to create a bodyfile.
+    supported_os: [all]
+    collector: stat
+    path: /
+    exclude_file_system: [proc, procfs]
+    output_file: bodyfile.txt
+  

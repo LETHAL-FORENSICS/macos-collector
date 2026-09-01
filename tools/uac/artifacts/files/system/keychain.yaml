@@ -1,0 +1,15 @@
+version: 1.1
+artifacts:
+  -
+    description: Collect system keychain files.
+    supported_os: [macos]
+    collector: file
+    path: /Library/Keychains
+    ignore_date_range: true
+  -
+    description: Collect user's keychain files.
+    supported_os: [macos]
+    collector: file
+    path: %user_home%/Library/Keychains
+    ignore_date_range: true
+  

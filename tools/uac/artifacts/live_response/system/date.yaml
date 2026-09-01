@@ -1,0 +1,10 @@
+version: 2.0
+output_directory: /live_response/system
+artifacts:
+  -
+    description: Display the system date and time.
+    supported_os: [all]
+    collector: command
+    command: date
+    output_file: date.txt
+  

@@ -1,0 +1,11 @@
+version: 2.0
+condition: command_exists "chkconfig"
+output_directory: /live_response/system
+artifacts:
+  -
+    description: Display a list of all services and their current configuration.
+    supported_os: [linux]
+    collector: command
+    command: chkconfig --list
+    output_file: chkconfig_--list.txt
+  

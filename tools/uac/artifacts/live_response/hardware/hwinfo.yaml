@@ -1,0 +1,10 @@
+version: 2.0
+condition: command_exists "hwinfo"
+output_directory: /live_response/hardware
+artifacts:
+  -
+    description: Display hardware information.
+    supported_os: [linux]
+    collector: command
+    command: hwinfo
+    output_file: hwinfo.txt

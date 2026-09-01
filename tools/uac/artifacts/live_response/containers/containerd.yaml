@@ -1,0 +1,11 @@
+version: 2.0
+condition: command_exists "containerd"
+output_directory: /live_response/containers
+artifacts:
+  -
+    description: Dump containerd configuration.
+    supported_os: [linux]
+    collector: command
+    command: containerd config dump
+    output_file: containerd_config_dump.txt
+  

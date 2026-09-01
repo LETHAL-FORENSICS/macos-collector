@@ -1,0 +1,11 @@
+version: 2.0
+condition: command_exists "crle"
+output_directory: /live_response/system
+artifacts:
+  -
+    description: Displays configuration information.
+    supported_os: [solaris]
+    collector: command
+    command: crle
+    output_file: crle.txt
+  

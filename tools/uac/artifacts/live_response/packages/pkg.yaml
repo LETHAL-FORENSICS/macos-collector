@@ -1,0 +1,11 @@
+version: 3.0
+condition: command_exists "pkg"
+output_directory: /live_response/packages
+artifacts:
+  -
+    description: Displays information about installed packages.
+    supported_os: [freebsd, solaris]
+    collector: command
+    command: pkg info
+    output_file: pkg_info.txt
+  

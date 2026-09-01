@@ -1,0 +1,16 @@
+version: 2.0
+condition: command_exists "lsvg"
+output_directory: /live_response/storage
+artifacts:
+  -
+    description: Displays information about volume groups.
+    supported_os: [aix]
+    collector: command
+    command: lsvg
+    output_file: lsvg.txt
+  -
+    description: Displays information about volume groups.
+    supported_os: [aix]
+    collector: command
+    command: lsvg -o | lsvg -il
+    output_file: lsvg_-o_lsvg_-il.txt

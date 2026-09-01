@@ -1,0 +1,11 @@
+version: 2.0
+condition: command_exists "usbconfig"
+output_directory: /live_response/hardware
+artifacts:
+  -
+    description: Display all connected USB devices and their attached interface drivers.
+    supported_os: [freebsd]
+    collector: command
+    command: usbconfig show_ifdrv
+    output_file: usbconfig_show_ifdrv.txt
+  

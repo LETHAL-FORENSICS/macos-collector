@@ -1,0 +1,28 @@
+version: 2.0
+output_directory: /live_response/network
+artifacts:
+  -
+    description: Collect the system's host name.
+    supported_os: [all]
+    collector: command
+    command: hostname
+    output_file: hostname.txt
+  -
+    description: Collect the system's host name.
+    supported_os: [esxi, linux, macos]
+    collector: command
+    command: hostname -f
+    output_file: hostname_-f.txt
+  -
+    description: Collect the system's host name information.
+    supported_os: [linux]
+    collector: command
+    command: hostnamectl
+    condition: command_exists "hostnamectl"
+    output_file: hostnamectl.txt
+  -
+    description: Collect the system's host name.
+    supported_os: [all]
+    collector: command
+    command: uname -n
+    output_file: uname_-n.txt

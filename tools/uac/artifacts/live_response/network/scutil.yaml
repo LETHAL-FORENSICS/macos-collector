@@ -1,0 +1,16 @@
+version: 2.0
+condition: command_exists "scutil"
+output_directory: /live_response/network
+artifacts:
+  -
+    description: Collect DNS configuration.
+    supported_os: [macos]
+    collector: command
+    command: scutil --dns
+    output_file: scutil_--dns.txt
+  -
+    description: Collect system proxy configuration.
+    supported_os: [macos]
+    collector: command
+    command: scutil --proxy
+    output_file: scutil_--proxy.txt

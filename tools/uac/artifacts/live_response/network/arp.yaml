@@ -1,0 +1,10 @@
+version: 2.0
+condition: command_exists "arp"
+output_directory: /live_response/network
+artifacts:
+  -
+    description: Collect the kernel's IPv4 network neighbour cache.
+    supported_os: [aix, freebsd, linux, macos, netbsd, netscaler, openbsd, solaris]
+    collector: command
+    command: arp -a
+    output_file: arp_-a.txt

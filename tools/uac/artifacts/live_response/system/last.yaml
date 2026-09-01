@@ -1,0 +1,84 @@
+version: 3.0
+condition: command_exists "last"
+output_directory: /live_response/system
+artifacts:
+  -
+    description: Show a listing of last logins and logouts.
+    supported_os: [aix, freebsd, linux, macos, netbsd, solaris]
+    collector: command
+    command: last
+    output_file: last.txt
+  -
+    description: Show a listing of last logins and logouts, but prints all available characters of each user name instead of truncating to the first 8 characters.
+    supported_os: [aix]
+    collector: command
+    command: last -X
+    output_file: last_-X.txt
+  -
+    description: Show a listing of last logins and logouts, but displays the host's IP number instead of the name.
+    supported_os: [linux]
+    collector: command
+    command: last -i
+    output_file: last_-i.txt
+  -
+    description: Show a listing of last logins and logouts, but display the hostname in the last column and print full login and logout times and dates.
+    supported_os: [linux]
+    collector: command
+    command: last -a -F
+    output_file: last_-a_-F.txt
+  -
+    description: Show a listing of last logins and logouts, but displays the hostname in the last column.
+    supported_os: [solaris]
+    collector: command
+    command: last -a
+    output_file: last_-a.txt
+  -
+    description: List utmp and wtmp files.
+    supported_os: [aix, freebsd, linux, netbsd, netscaler, openbsd, solaris]
+    collector: find
+    path: /var/adm /var/log /var/run /var/share/adm
+    name_pattern: ["utmp*", "wtmp*"]
+    exclude_name_pattern: ["*.gz"]
+    output_directory: /%temp_directory%/live_response/system
+    output_file: last_utmp_wtmp_files.txt
+  -
+    description: Parse utmp and wtmp files using last tool, printing the full date and time.
+    supported_os: [aix, freebsd, linux, netbsd, netscaler, openbsd, solaris]
+    collector: command
+    condition: last -a -F
+    foreach: cat "/%temp_directory%/live_response/system/last_utmp_wtmp_files.txt"
+    command: last -a -F -f "%line%"
+    output_file: last_-a_-F_-f_%line%.txt
+  -
+    description: Parse utmp and wtmp files using last tool.
+    supported_os: [aix, freebsd, linux, netbsd, netscaler, openbsd, solaris]
+    collector: command
+    condition: ! last -a -F
+    foreach: cat "/%temp_directory%/live_response/system/last_utmp_wtmp_files.txt"
+    command: last -f "%line%"
+    output_file: last_-f_%line%.txt
+  -
+    description: List compressed utmp and wtmp files.
+    supported_os: [aix, freebsd, linux, netbsd, netscaler, openbsd, solaris]
+    condition: command_exists "zcat"
+    collector: find
+    path: /var/adm /var/log /var/run /var/share/adm
+    name_pattern: ["utmp*.gz", "wtmp*.gz"]
+    output_directory: /%temp_directory%/live_response/system
+    output_file: last_compressed_utmp_wtmp_files.txt
+  -
+    description: Parse compressed utmp and wtmp files using last tool, printing the full date and time.
+    supported_os: [aix, freebsd, linux, netbsd, netscaler, openbsd, solaris]
+    collector: command
+    condition: last -a -F
+    foreach: cat "/%temp_directory%/live_response/system/last_compressed_utmp_wtmp_files.txt"
+    command: zcat "%line%" | last -a -F
+    output_file: last_-a_-F_-f_%line%.txt
+  -
+    description: Parse compressed utmp and wtmp files using last tool.
+    supported_os: [aix, freebsd, linux, netbsd, netscaler, openbsd, solaris]
+    collector: command
+    condition: ! last -a -F
+    foreach: cat "/%temp_directory%/live_response/system/last_compressed_utmp_wtmp_files.txt"
+    command: zcat "%line%" | last
+    output_file: last_-f_%line%.txt

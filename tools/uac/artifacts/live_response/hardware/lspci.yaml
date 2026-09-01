@@ -1,0 +1,22 @@
+version: 2.0
+condition: command_exists "lspci"
+output_directory: /live_response/hardware
+artifacts:
+  -
+    description: List all PCI devices.
+    supported_os: [linux]
+    collector: command
+    command: lspci
+    output_file: lspci.txt
+  -
+    description: List all PCI devices.
+    supported_os: [linux]
+    collector: command
+    command: lspci -vv
+    output_file: lspci_-vv.txt
+  -
+    description: List all PCI devices.
+    supported_os: [linux]
+    collector: command
+    command: lspci -nn -k
+    output_file: lspci_-nn_-k.txt

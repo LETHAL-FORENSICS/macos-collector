@@ -1,0 +1,23 @@
+version: 2.0
+condition: command_exists "VBoxManage"
+output_directory: /live_response/vms
+artifacts:
+  -
+    description: List all registered VMs.
+    supported_os: [linux, macos, solaris]
+    collector: command
+    command: VBoxManage list vms
+    output_file: VBoxManage_list_vms.txt
+  -
+    description: List all running VMs.
+    supported_os: [linux, macos, solaris]
+    collector: command
+    command: VBoxManage list runningvms
+    output_file: VBoxManage_list_runningvms.txt
+  -
+    description: List all running VMs.
+    supported_os: [linux, macos, solaris]
+    collector: command
+    foreach: VBoxManage list vms | sed -e 's:.*{::' -e 's:}::'
+    command: VBoxManage showvminfo %line%
+    output_file: VBoxManage_showvminfo_%line%.txt

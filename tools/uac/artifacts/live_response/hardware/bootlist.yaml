@@ -1,0 +1,10 @@
+version: 2.0
+condition: command_exists "bootlist"
+output_directory: /live_response/hardware
+artifacts:
+  -
+    description: Display the list of boot devices available to the system.
+    supported_os: [aix]
+    collector: command
+    command: bootlist -o -m normal
+    output_file: bootlist_-o_-m_normal.txt

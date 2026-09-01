@@ -1,0 +1,10 @@
+version: 2.0
+condition: command_exists "psrinfo"
+output_directory: /live_response/hardware
+artifacts:
+  -
+    description: Display information about processors.
+    supported_os: [solaris]
+    collector: command
+    command: psrinfo -v
+    output_file: psrinfo_-v.txt

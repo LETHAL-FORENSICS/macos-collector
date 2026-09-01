@@ -1,0 +1,17 @@
+version: 2.0
+condition: command_exists "auditctl"
+output_directory: /live_response/system
+artifacts:
+  -
+    description: Display kernel's audit rules.
+    supported_os: [linux]
+    collector: command
+    command: auditctl -l
+    output_file: auditctl_-l.txt
+  -
+    description: Display the kernel's audit subsystem status.
+    supported_os: [linux]
+    collector: command
+    command: auditctl -s
+    output_file: auditctl_-s.txt
+  

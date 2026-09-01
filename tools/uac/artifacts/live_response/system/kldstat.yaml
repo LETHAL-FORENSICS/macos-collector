@@ -1,0 +1,11 @@
+version: 2.0
+condition: command_exists "kldstat"
+output_directory: /live_response/system
+artifacts:
+  -
+    description: Display status of dynamic kernel linker.
+    supported_os: [freebsd]
+    collector: command
+    command: kldstat -v
+    output_file: kldstat_-v.txt
+  

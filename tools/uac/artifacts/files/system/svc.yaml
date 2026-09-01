@@ -1,0 +1,15 @@
+version: 1.1
+artifacts:
+  -
+    description: Collect svc manifest files.
+    supported_os: [solaris]
+    collector: file
+    path: /lib/svc/manifest /var/svc/manifest
+    ignore_date_range: true
+  -
+    description: Collect svc method (service start) files.
+    supported_os: [solaris]
+    collector: file
+    path: /lib/svc/method
+    ignore_date_range: true
+

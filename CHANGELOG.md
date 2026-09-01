@@ -2,6 +2,19 @@
 
 All changes to macos-collector will be documented in this file. 
 
+## [1.7.0] - 2026-09-01
+### Added
+- UAC (Unix-like Artifacts Collector)
+- TrueTree: General Process Information
+- Biome Data Collection
+- Biome Timeline
+- Custom Output Path
+- XProtect (AppProtectionPolicy.plist)
+- Comverting Unified Logs to JSON format (Default: Disabled)
+
+### Fixed
+- Minor fixes and improvements
+
 ## [1.6.1] - 2026-07-20
 ### Added
 - Biome Data Collection (App.MenuItem)

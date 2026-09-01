@@ -6,7 +6,7 @@
 # @copyright:   Copyright (c) 2026 Martin Willing. All rights reserved. Licensed under the MIT license.
 # @contact:     Any feedback or suggestions are always welcome and much appreciated - mwilling@lethal-forensics.com
 # @url:         https://lethal-forensics.com/
-# @date:        2026-07-20
+# @date:        2026-09-01
 #
 #
 # ██╗     ███████╗████████╗██╗  ██╗ █████╗ ██╗      ███████╗ ██████╗ ██████╗ ███████╗███╗   ██╗███████╗██╗ ██████╗███████╗
@@ -25,7 +25,7 @@
 #
 #
 # Usage:
-# sudo bash macos-collector.sh [OPTION]
+# sudo bash macos-collector.sh [OPTION] [--output-path PATH]
 #
 # Help:
 # sudo bash macos-collector.sh -h
@@ -41,9 +41,9 @@
 # Analyze previous collected Aftermath archive file.
 #
 # Example 3:
-# sudo bash macos-collector.sh --ds_store
+# sudo bash macos-collector.sh --biome
 #
-# Collect .DS_Store files from a macOS endpoint.
+# Collect Biome Data from a macOS endpoint.
 #
 # Example 4:
 # sudo bash macos-collector.sh --fsevents
@@ -51,9 +51,9 @@
 # Collect FSEvents Data from a macOS endpoint.
 #
 # Example 5:
-# sudo bash macos-collector.sh --triage
+# sudo bash macos-collector.sh --triage --output-path "/Volumes/T9/macos-collector"
 #
-# Collect ALL supported macOS Forensic Artifacts
+# Collect ALL supported macOS Forensic Artifacts (with the exception of UAC) and specify a Custom Output Directory (Default: Parent Directory).
 #
 #
 # Dependencies:
@@ -64,14 +64,20 @@
 # Aftermath v2.3.0 (2025-09-24)
 # https://github.com/jamf/aftermath
 #
+# Biome Timeline v2.1.0 (2026-07-20)
+# https://github.com/cocopollo/Biome_Timeline
+#
 # KnockKnock v4.0.3 (2025-12-18)
 # https://objective-see.com/products/knockknock.html
 #
 # TrueTree v0.8 (2024-08-23)
 # https://github.com/themittenmac/TrueTree
 #
+# UAC v3.3.0 (2026-04-15)
+# https://github.com/tclahr/uac
 #
-# Tested on macOS Tahoe 26.5.2
+#
+# Tested on macOS Tahoe 26.6.2
 #
 #############################################################
 #############################################################
@@ -79,7 +85,8 @@
 # Declarations
 SCRIPT_DIR=$( /usr/bin/cd "$( /usr/bin/dirname "${BASH_SOURCE[0]}" )" && /bin/pwd )
 TIMESTAMP=$(/bin/date '+%FT%H%M%S') # YYYY-MM-DDThhmmss
-OUTPUT="$SCRIPT_DIR/output/$(/bin/hostname)/$TIMESTAMP-macos-collector"
+OUTPUT_PATH=""
+MODE=""
 
 # Archive Passwords
 ARCHIVE_PASSWORD="IncidentResponse"
@@ -99,6 +106,10 @@ KNOCKKNOCK="$SCRIPT_DIR/tools/KnockKnock/KnockKnock.app"
 # TrueTree
 TRUETREE="$SCRIPT_DIR/tools/TrueTree/TrueTree"
 
+# Unix-like Artifacts Collector (UAC)
+UAC="$SCRIPT_DIR/tools/uac"
+MD5_UAC="89FA49B5903EA9EA230EBC7B2FC056DC"
+
 # VirusTotal API
 # https://www.virustotal.com/#/join-us --> Join the community for free
 VIRUSTOTAL="YOUR_API_KEY" # Insert your VirusTotal API key here (Default: YOUR_API_KEY)
@@ -106,7 +117,7 @@ VIRUSTOTAL="YOUR_API_KEY" # Insert your VirusTotal API key here (Default: YOUR_A
 #############################################################
 #############################################################
 
-Header() {
+header() {
 clear
 echo "macOS-Collector - Automated Collection of macOS Forensic Artifacts for DFIR"
 echo "(c) 2026 Martin Willing at Lethal-Forensics (https://lethal-forensics.com/)"
@@ -128,8 +139,8 @@ echo ""
 #############################################################
 #############################################################
 
-Usage() {
-echo "Usage: $0 [OPTION]"
+usage() {
+echo "Usage: $0 [OPTION] [--output-path PATH]"
 echo ""
 echo "Options:"
 echo "--collect         Scan and collect forensic artifacts w/ Aftermath (Step #1)"
@@ -147,7 +158,11 @@ echo "--processes       Collect Snapshot of Running Processes w/ TrueTree"
 echo "--recentitems     Collect Recent Items (MRU)"
 echo "--sysdiagnose     Collect Sysdiagnose Logs"
 echo "--triage          Collect ALL supported macOS Forensic Artifacts"
+echo "--uac             Collect Forensic Artifacts w/ UAC (Unix-like Artifacts Collector)"
 echo "--help            Show this help message"
+echo ""
+echo "Optional Second Argument:"
+echo "--output-path     Specify Custom Output Directory (Default: Parent Directory)"
 echo ""
 exit 0
 }
@@ -155,7 +170,7 @@ exit 0
 #############################################################
 #############################################################
 
-Check_Admin() {
+check_admin() {
 
 	# Check if the script is running with root privileges
 	if [[ $EUID -ne 0 ]]; then 
@@ -169,7 +184,7 @@ Check_Admin() {
 #############################################################
 #############################################################
 
-Check_FDA() {
+check_fda() {
 
 	# Check if Terminal application has full disk access (FDA)
 	if ! plutil -lint /Library/Preferences/com.apple.TimeMachine.plist > /dev/null; then
@@ -187,7 +202,7 @@ Check_FDA() {
 #############################################################
 #############################################################
 
-Verify_7zz() {
+verify_7zz() {
 
 	# Verify File Integrity
 	if [[ -f "$SEVENZIP" ]]; then
@@ -218,31 +233,14 @@ Verify_7zz() {
 #############################################################
 #############################################################
 
-Output() {
-
-	# Time Duration
-	START_TIME=$SECONDS
-
-	# Check if output folder exists
-	if [[ -d "$OUTPUT" ]]
-		then
-			/bin/rm -r "$OUTPUT"
-		else
-			/bin/mkdir -p "$OUTPUT"
-	fi
-}
-
-#############################################################
-#############################################################
-
-BasicInfo() {
+basicinfo() {
 
 # Acquisition date (ISO 8601)
 echo -n "Acquisition date: "; /bin/date -u +"%Y-%m-%d %H:%M:%S UTC"
 echo ""
 
-# Host Name
-HostName=$(/bin/hostname)
+# Short Hostname
+HostName=$(/bin/hostname -s)
 echo "[Info]  Host Name: $HostName"
 
 # SPHardwareDataType
@@ -330,10 +328,11 @@ if [[ -f "$FILE" ]]; then
 	VERSION=$(/usr/bin/defaults read "$FILE" CFBundleShortVersionString)
 	RULES=$(/bin/cat "/private/var/protected/xprotect/XProtect.bundle/Contents/Resources/XProtect.yara" | /usr/bin/grep -c "^rule")
 	OSASCRIPT=$(/bin/cat "/private/var/protected/xprotect/XProtect.bundle/Contents/Resources/XPScripts.yr" | /usr/bin/grep -c "^rule")
-	echo "[Info]  XProtect Version: $VERSION ($RULES YARA rules, $OSASCRIPT OSASCRIPT rules)"
+	PROTECTIONS=$(/usr/libexec/PlistBuddy -c "Print :protections" "/private/var/protected/xprotect/XProtect.bundle/Contents/Resources/AppProtectionPolicy.plist" | /usr/bin/grep -c "Dict {")
+	echo "[Info]  XProtect Version: $VERSION ($RULES YARA rules, $OSASCRIPT OSASCRIPT rules, $PROTECTIONS Protected Applications)"
 fi
 
-# XProtect (Secondary Location)
+# XProtect (Secondary Location, Fallback Location)
 FILE="/private/var/protected/xprotect/XProtect.bundle/Contents/Info.plist" # macOS Sequoia (2024)
 if [[ ! -f "$FILE" ]]; then	
 	FILE="/Library/Apple/System/Library/CoreServices/XProtect.bundle/Contents/Info.plist"
@@ -341,9 +340,26 @@ if [[ ! -f "$FILE" ]]; then
 		VERSION=$(/usr/bin/defaults read "$FILE" CFBundleShortVersionString)
 		RULES=$(/bin/cat "/Library/Apple/System/Library/CoreServices/XProtect.bundle/Contents/Resources/XProtect.yara" | /usr/bin/grep -c "^rule")
 		OSASCRIPT=$(/bin/cat "/Library/Apple/System/Library/CoreServices/XProtect.bundle/Contents/Resources/XPScripts.yr" | /usr/bin/grep -c "^rule")
-		echo "[Info]  XProtect Version: $VERSION ($RULES YARA rules, $OSASCRIPT OSASCRIPT rules)"
+		PROTECTIONS=$(/usr/libexec/PlistBuddy -c "Print :protections" "/private/var/protected/xprotect/XProtect.bundle/Contents/Resources/AppProtectionPolicy.plist" | /usr/bin/grep -c "Dict {")
+		echo "[Info]  XProtect Version: $VERSION ($RULES YARA rules, $OSASCRIPT OSASCRIPT rules, $PROTECTIONS Protected Applications)"
 	fi
 fi
+
+# log show --predicate 'subsystem == "com.apple.xprotect"' --info
+
+# AppProtectionPolicy.plist (XProtect Version 5354, 8 items)
+# This file acts as a hardened data-protection policy designed to block malicious imposters from accessing the local Application Support data of highly targeted third-party software.
+# If a binary tries to read or modify the data folders of these specific apps, macOS checks its signature against this list. If the Team ID or Developer Identity doesn’t match, access is blocked.
+
+# Protected Applications (Browsers, Crypto Wallets, Chat Clients)
+# Discord
+# Chrome
+# Brave
+# Edge
+# Firefox
+# Ledger
+# Exodus
+# Wasabi Wallet
 
 # XProtect Remediator (XPR)
 FILE="/Library/Apple/System/Library/CoreServices/XProtect.app/Contents/Info.plist"
@@ -378,7 +394,7 @@ fi
 #############################################################
 #############################################################
 
-SystemInfo() {
+systeminfo() {
 
 # Stats
 START_SYSTEMINFO=$(/bin/date +%s)
@@ -421,6 +437,10 @@ fi
 
 # OS Information
 /bin/mkdir -p "$OUTPUT/SystemInfo/SystemInfo_Data/OS"
+
+# Host Name
+HostName=$(/bin/hostname)
+echo "$HostName" > "$OUTPUT/SystemInfo/SystemInfo_Data/OS/Hostname.txt"
 
 # System Version
 FILE="/System/Library/CoreServices/SystemVersion.plist"
@@ -2144,15 +2164,18 @@ echo "System Information Collection: $((ELAPSED_TIME_SYSTEMINFO/60)) min $((ELAP
 #############################################################
 #############################################################
 
-Aftermath_Collection_DeepScan() {
+aftermath_collection_deepscan() {
 
 # Aftermath
 # https://github.com/jamf/aftermath
 
-# Note: Aftermath needs to be root, as well as have full disk access (FDA) in order to run. FDA can be granted to the Terminal application (or iTerm2) in which it is running.
+# Aftermath needs to be root, as well as have full disk access (FDA) in order to run. FDA can be granted to the Terminal application (or iTerm2) in which it is running.
 
 # Check if Terminal application (or iTerm2) has full disk access (FDA)
 # System Settings --> Privacy & Security --> Full Disk Access
+
+# Aftermath requests access to your Contacts because it analyzes the local Address Book database. Full Access can be granted to the Terminal application (or iTerm2) in which it is running.
+# System Settings --> Privacy & Security --> Full Access 
 
 # Stats
 START_COLLECTION=$(/bin/date +%s)
@@ -2184,33 +2207,33 @@ if [[ -s $(/bin/ls -A "$AFTERMATH") ]]; then
 fi
 
 # Aftermath Collection
-/bin/mkdir -p "$OUTPUT"/Aftermath_Collection
+/bin/mkdir -p "$OUTPUT/Aftermath/Aftermath_Collection"
 
 # Default Collection + Deep Scan
 echo "[Info]  Aftermath Collection w/ Deep Scan is running [approx. 3-20 min] ..."
-/usr/bin/sudo "$AFTERMATH" -o "$OUTPUT"/Aftermath_Collection --deep --pretty 2> /dev/null | /usr/bin/sudo /usr/bin/tee "$OUTPUT"/Aftermath_Collection/Aftermath-colored.txt > /dev/null
+/usr/bin/sudo "$AFTERMATH" -o "$OUTPUT/Aftermath/Aftermath_Collection" --deep --pretty 2> /dev/null | /usr/bin/sudo /usr/bin/tee "$OUTPUT"/Aftermath/Aftermath_Collection/Aftermath-colored.txt > /dev/null
 
 # Remove Aftermath folders from default locations ("/tmp", "/var/folders/zz/) 
 echo "[Info]  Cleaning up ..."
-/usr/bin/sudo "$AFTERMATH" --cleanup | /usr/bin/sudo /usr/bin/tee "$OUTPUT"/Aftermath_Collection/Cleanup.txt > /dev/null
+/usr/bin/sudo "$AFTERMATH" --cleanup | /usr/bin/sudo /usr/bin/tee "$OUTPUT"/Aftermath/Aftermath_Collection/Cleanup.txt > /dev/null
 
 # Cleaning Aftermath Logfile
-/bin/cat -v "$OUTPUT"/Aftermath_Collection/Aftermath-colored.txt | /usr/bin/sed -e 's/\^\[//g' | /usr/bin/sed -e 's/\[0;[0-9]*m//g' > "$OUTPUT"/Aftermath_Collection/Aftermath.txt
+/bin/cat -v "$OUTPUT"/Aftermath/Aftermath_Collection/Aftermath-colored.txt | /usr/bin/sed -e 's/\^\[//g' | /usr/bin/sed -e 's/\[0;[0-9]*m//g' > "$OUTPUT"/Aftermath/Aftermath_Collection/Aftermath.txt
 
 # Creating Secure Archive
-if [[ -d "$OUTPUT/Aftermath_Collection" ]]; then
+if [[ -d "$OUTPUT/Aftermath/Aftermath_Collection" ]]; then
 	echo "[Info]  Preparing Secure Archive Container ..."
-	cd "$OUTPUT" || exit
+	cd "$OUTPUT/Aftermath" || exit
 	"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "Aftermath_$SerialNumber.7z" "Aftermath_Collection/*" > /dev/null 2>&1
 	cd "$SCRIPT_DIR" || exit
 fi
 
 # Archive Name
-ARCHIVE=$(/bin/ls -l "$OUTPUT" | /usr/bin/awk '{ print $9 }' | /usr/bin/grep "^Aftermath_.*.7z$")
+ARCHIVE=$(/bin/ls -l "$OUTPUT/Aftermath" | /usr/bin/awk '{ print $9 }' | /usr/bin/grep "^Aftermath_.*.7z$")
 echo "[Info]  Archive Name: $ARCHIVE"
 
 # Archive Size
-FILE="$OUTPUT/$ARCHIVE"
+FILE="$OUTPUT/Aftermath/$ARCHIVE"
 BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
 FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
 echo "[Info]  Archive Size: $FILESIZE"
@@ -2231,7 +2254,7 @@ MODIFY=$(TZ='' /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Last Modified Time: $MODIFY UTC"
 
 # Cleaning up
-FOLDER="$OUTPUT/Aftermath_Collection"
+FOLDER="$OUTPUT/Aftermath/Aftermath_Collection"
 if [[ -d "$FOLDER" ]]; then
 	/bin/rm -rf "$FOLDER"
 fi
@@ -2244,8 +2267,9 @@ echo "Aftermath Collection w/ Deep Scan: $((ELAPSED_TIME_COLLECTION/60)) min $((
 }
 
 #############################################################
+#############################################################
 
-Aftermath_Analysis() {
+aftermath_analysis() {
 
 # Aftermath
 # https://github.com/jamf/aftermath
@@ -2359,7 +2383,7 @@ echo "Aftermath Analysis: $((ELAPSED_TIME_ANALYSIS/60)) min $((ELAPSED_TIME_ANAL
 #############################################################
 #############################################################
 
-BTM_Dump() {
+btm_dump() {
 
 # Background Task Management (BTM)
 
@@ -2509,7 +2533,7 @@ echo "BTM Dump File Collection: $((ELAPSED_TIME_BTM/60)) min $((ELAPSED_TIME_BTM
 #############################################################
 #############################################################
 
-DS_Store() {
+ds_store() {
 
 # Desktop Service Store Files (.DS_Store)
 
@@ -2626,7 +2650,7 @@ echo ".DS_Store Collection: $((ELAPSED_TIME_DSStore/60)) min $((ELAPSED_TIME_DSS
 #############################################################
 #############################################################
 
-FSEvents() {
+fsevents() {
 
 # File System Events (FSEvents)
 
@@ -2736,33 +2760,33 @@ echo "FSEvents Collection: $((ELAPSED_TIME_FSEVENTS/60)) min $((ELAPSED_TIME_FSE
 #############################################################
 #############################################################
 
-UnifiedLogs() {
+unifiedlogs() {
 
 # Apple Unified Logs (AUL)
 
 # Stats
 START_AUL=$(/bin/date +%s)
 
-# Gather system logs into a log archive (.logarchive)
+# Gather system logs into a log archive (.logarchive) --> structured directory bundle containing compressed binary log streams and metadata
 echo "[Info]  Collecting Unified Logs (.logarchive) ..."
-/bin/mkdir -p "$OUTPUT/UnifiedLogs/"
-LOGARCHIVE="$OUTPUT/UnifiedLogs/system_logs.logarchive"
+/bin/mkdir -p "$OUTPUT/UnifiedLogs/Bundle"
+LOGARCHIVE="$OUTPUT/UnifiedLogs/Bundle/system_logs.logarchive"
 /usr/bin/sudo /usr/bin/log collect --output "$LOGARCHIVE" > /dev/null 2>&1
 
 # Creating Secure Archive
 if [[ -d "$LOGARCHIVE" ]]; then
 	echo "[Info]  Preparing Secure Archive Container ..."
-	cd "$OUTPUT/UnifiedLogs" || exit
+	cd "$OUTPUT/UnifiedLogs/Bundle/" || exit
 	"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "UnifiedLogs_$SerialNumber.7z" "system_logs.logarchive/*" > /dev/null 2>&1
 	cd "$SCRIPT_DIR" || exit
 fi
 
 # Archive Name
-ARCHIVE=$(/bin/ls -l "$OUTPUT/UnifiedLogs" | /usr/bin/awk '{ print $9 }' | /usr/bin/grep "^UnifiedLogs_.*.7z$")
+ARCHIVE=$(/bin/ls -l "$OUTPUT/UnifiedLogs/Bundle" | /usr/bin/awk '{ print $9 }' | /usr/bin/grep "^UnifiedLogs_.*.7z$")
 echo "[Info]  Archive Name: $ARCHIVE"
 
 # Archive Size
-FILE="$OUTPUT/UnifiedLogs/$ARCHIVE"
+FILE="$OUTPUT/UnifiedLogs/Bundle/$ARCHIVE"
 BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
 FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
 echo "[Info]  Archive Size: $FILESIZE"
@@ -2782,11 +2806,39 @@ echo "[Info]  Create Time: $BIRTH UTC"
 MODIFY=$(TZ='' /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
 echo "[Info]  Last Modified Time: $MODIFY UTC"
 
-# Show System Logging Statistics
+# Unified Logging Statistics
 if [[ -d "$LOGARCHIVE" ]]; then
-	echo "[Info]  Creating System Logging Statistics ..."
+	echo "[Info]  Creating Unified Logging Statistics ..."
 	/usr/bin/sudo /usr/bin/log stats --archive "$LOGARCHIVE" | /usr/bin/sudo /usr/bin/tee "$OUTPUT/UnifiedLogs/Statistics.txt" > /dev/null
 fi
+
+# shellcheck disable=SC2329
+
+unifiedlogs_json() {
+
+# JSON
+if [[ -d "$LOGARCHIVE" ]]; then
+	echo "[Info]  Converting Unified Logs (.logarchive) to JSON format ..."
+	/bin/mkdir -p "$OUTPUT/UnifiedLogs/JSON/"
+	/usr/bin/log show --archive "$LOGARCHIVE" --style json --info --debug | /usr/bin/sudo /usr/bin/tee "$OUTPUT/UnifiedLogs/JSON/UnifiedLogging.json" > /dev/null
+
+	# Creating Secure Archive
+	if [[ -s "$OUTPUT/UnifiedLogs/JSON/UnifiedLogging.json" ]]; then
+		cd "$OUTPUT/UnifiedLogs/JSON" || exit
+		"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "UnifiedLogs_$SerialNumber.7z" "$OUTPUT/UnifiedLogs/JSON/UnifiedLogging.json" > /dev/null 2>&1
+		cd "$SCRIPT_DIR" || exit
+	fi
+
+	# Cleaning up
+	if [[ -s "$OUTPUT/UnifiedLogs/JSON/UnifiedLogging.json" ]]; then
+		/bin/rm "$OUTPUT/UnifiedLogs/JSON/UnifiedLogging.json"
+	fi
+fi
+
+}
+
+# Enable/Disable Comverting Unified Logs to JSON format (Default: Disabled)
+#unifiedlogs_json
 
 # Cleaning up
 if [[ -d "$LOGARCHIVE" ]]; then
@@ -2803,7 +2855,7 @@ echo "Unified Logs Collection: $((ELAPSED_TIME_AUL/60)) min $((ELAPSED_TIME_AUL%
 #############################################################
 #############################################################
 
-Sysdiagnose() {
+sysdiagnose() {
 
 # Sysdiagnose Logs Generation
 
@@ -2871,7 +2923,7 @@ echo "Sysdiagnose Logs Collection: $((ELAPSED_TIME_SYSDIAGNOSE/60)) min $((ELAPS
 #############################################################
 #############################################################
 
-KnockKnock() {
+knockknock() {
 
 # Who's there? See what's persistently installed on your Mac. Like AutoRuns ...but for macOS!
 
@@ -3041,7 +3093,7 @@ echo "KnockKnock Scan: $((ELAPSED_TIME_KNOCK/60)) min $((ELAPSED_TIME_KNOCK%60))
 #############################################################
 #############################################################
 
-Spotlight() {
+spotlight() {
 
 # Spotlight Database (Desktop Search Engine)
 
@@ -3230,7 +3282,7 @@ echo "Spotlight Database Collection: $((ELAPSED_TIME_SPOTLIGHT/60)) min $((ELAPS
 #############################################################
 #############################################################
 
-Notifications() {
+notifications() {
 
 # Notification Center shows your notifications in the right-top corner of your screen. 
 
@@ -3373,7 +3425,7 @@ echo "Notification Center Database Collection: $((ELAPSED_TIME_NOTIFICATIONS/60)
 #############################################################
 #############################################################
 
-RecentItems() {
+recentitems() {
 
 # Stats
 START_RECENT=$(/bin/date +%s)
@@ -3497,7 +3549,7 @@ echo "Recent Items Collection: $((ELAPSED_TIME_RECENT/60)) min $((ELAPSED_TIME_R
 #############################################################
 #############################################################
 
-TrueTree() {
+truetree() {
 
 # Stats
 START_TRUETREE=$(/bin/date +%s)
@@ -3506,7 +3558,7 @@ START_TRUETREE=$(/bin/date +%s)
 ExpectedTeamID="C793NB2B2B" # Jaron Bradley (C793NB2B2B)
 if [[ -f "$TRUETREE" ]]; then
 
-	TeamID=$(/usr/sbin/spctl --assess --type execute -vv "$TRUETREE" 2>&1 | awk '/origin=/ {print $NF }' | /usr/bin/tr -d '()')
+	TeamID=$(/usr/sbin/spctl --assess --type execute -vv "$TRUETREE" 2>&1 | /usr/bin/awk '/origin=/ {print $NF }' | /usr/bin/tr -d '()')
 
 	if [[ "$TeamID" = "$ExpectedTeamID" ]]; then
 
@@ -3565,6 +3617,144 @@ if [[ -f "$TRUETREE" ]]; then
 	/usr/bin/sudo "$TRUETREE" --sources -o "$OUTPUT/TrueTree/TrueTree_Data/Colored/TrueTree-Sources-colored.txt" > /dev/null 2>&1
 fi
 
+# General Process Information
+echo "[Info]  Collecting General Process Information ..."
+/bin/mkdir -p "$OUTPUT/TrueTree/TrueTree_Data/General/"
+/bin/ps > "$OUTPUT/TrueTree/TrueTree_Data/General/ps.txt" 2> /dev/null
+/bin/ps auxwww > "$OUTPUT/TrueTree/TrueTree_Data/General/ps_auxwww.txt" 2> /dev/null
+/bin/ps -deaf > "$OUTPUT/TrueTree/TrueTree_Data/General/ps_-deaf.txt" 2> /dev/null
+/bin/ps -ef > "$OUTPUT/TrueTree/TrueTree_Data/General/ps_-ef.txt" 2> /dev/null
+/bin/ps -efl > "$OUTPUT/TrueTree/TrueTree_Data/General/ps_-efl.txt" 2> /dev/null
+/bin/date > "$OUTPUT/TrueTree/TrueTree_Data/General/date_before_ps_-axo_pid_user_etime_args.txt" 2> /dev/null
+/bin/ps -axo pid,user,etime,args > "$OUTPUT/TrueTree/TrueTree_Data/General/ps_-axo_pid_user_etime_args.txt" 2> /dev/null
+/bin/date > "$OUTPUT/TrueTree/TrueTree_Data/General/date_before_ps_-axo_pid_user_lstart_args.txt" 2> /dev/null
+/bin/ps -axo pid,user,lstart,args > "$OUTPUT/TrueTree/TrueTree_Data/General/ps_-axo_pid_user_lstart_args.txt" 2> /dev/null
+/usr/bin/top -l1 > "$OUTPUT/TrueTree/TrueTree_Data/General/top_l1.txt" 2> /dev/null
+/usr/sbin/lsof -nPli > "$OUTPUT/TrueTree/TrueTree_Data/General/lsof_-nPl.txt" 2> /dev/null
+/bin/ps -axo comm | /usr/bin/grep ^/ | /usr/bin/sort -u > "$OUTPUT/TrueTree/TrueTree_Data/General/running_processes_full_paths.txt" 2> /dev/null
+
+# https://procxray.com/blog/is-mac-process-a-virus/
+# https://procxray.com/blog/how-to-check-running-processes-mac/
+
+# Hash Running Processes
+/bin/ps -axo pid,ppid,user,lstart,comm | /usr/bin/awk 'NR>1 {print $1 "," $2 "," $3 "," $4 " " $5 " " $6 " " $7 " " $8 "," substr($0, index($0, $9))}' | /usr/bin/grep ",/" | /usr/bin/sort -u -t, -k5 > "$OUTPUT/TrueTree/TrueTree_Data/General/hash_running_processes_full_paths.txt" 2> /dev/null
+
+if [[ -s "$OUTPUT/TrueTree/TrueTree_Data/General/hash_running_processes_full_paths.txt" ]]; then
+
+	# CSV
+	echo "Name,PID,PPID,User,Started,MD5,SHA1,SHA256,Path,Signature,BundleId,Signer,TeamIdentifier,Status,Stapled,Gatekeeper" > "$OUTPUT/TrueTree/TrueTree_Data/General/Processes.csv"
+
+	while IFS=, read -r PID PARENT_PID USER_VAL STARTED PROCESS || [[ -n "$PROCESS" ]]; do
+	    [[ -z "$PROCESS" ]] && continue
+	    if [[ -f "$PROCESS" ]]; then
+
+	    	# Process
+	    	PROCESS_NAME=$(/usr/bin/basename "$PROCESS")
+
+	    	# Started
+	    	FORMATTED_DATE=$(/bin/date -j -f "%a %b %e %T %Y" "$STARTED" "+%Y-%m-%d %H:%M:%S" 2>/dev/null)
+	    	if [[ -z "$FORMATTED_DATE" ]]; then
+	            FORMATTED_DATE="$STARTED"
+	        fi
+
+	        # Launched by
+	        PPID_PATH=$(/bin/ps -p "$PARENT_PID" -o comm= 2>/dev/null)
+			if [[ -n "$PPID_PATH" ]]; then
+			    PPID_NAME=$(/usr/bin/basename "$PPID_PATH" 2>/dev/null)
+			    PPID_DISPLAY="$PPID_NAME ($PARENT_PID)"
+			else
+			    PPID_DISPLAY="Unknown ($PARENT_PID )"
+			fi
+
+	    	# Hashes
+	        MD5=$(/sbin/md5 -q "$PROCESS")
+	        SHA1=$(/usr/bin/shasum -a 1 "$PROCESS" | /usr/bin/cut -d' ' -f1)
+	        SHA256=$(/usr/bin/shasum -a 256 "$PROCESS" | /usr/bin/cut -d' ' -f1)
+
+	        # Verify Code Signature Integrity
+	        SIGNATURE=$(/usr/bin/codesign --verify "$PROCESS" 2>&1)
+	        if [[ -z "$SIGNATURE" ]]; then
+	            SIGNATURE="Valid"
+	        else
+	        	SIGNATURE="Invalid"
+	        fi
+
+	        # Code Signing Info
+	        CODESIGN=$(/usr/bin/codesign -dvvv "$PROCESS" 2>&1)
+
+	        # Bundle ID
+	        BUNDLEID=$(echo "$CODESIGN" | /usr/bin/awk -F'=' '/^Identifier=/ {print $2; exit}')
+	        if [[ -z "$BUNDLEID" ]]; then
+	            BUNDLEID="Unknown"
+	        fi
+	        
+	        # Signer
+	        COMPANY=$(echo "$CODESIGN" | /usr/bin/awk -F'=' '/Authority=/ {print $2; exit}' | /usr/bin/sed -E 's/^.*: (.*) \(.*\)$/\1/')
+
+	        if [[ -z "$COMPANY" ]]; then
+
+	        	# Ad-Hoc Signed
+	        	# Note: When a binary is ad-hoc signed on macOS, it does not have a formal Developer ID or Authority chain.
+			    if echo "$CODESIGN" | /usr/bin/grep -q "Signature=adhoc"; then
+			        COMPANY="Ad-Hoc Signed"
+			    else
+			        COMPANY="Unsigned"
+			    fi
+			fi
+
+	        # TeamIdentifier
+	        # Note: A missing TeamIdentifier is normal for many Apple system binaries.
+	        TEAMID=$(echo "$CODESIGN" | /usr/bin/awk -F'=' '/^TeamIdentifier=/ {print $2; exit}')
+	        if [[ -z "$TEAMID" ]]; then
+	            TEAMID="Unknown"
+	        fi
+
+	        # Notarization
+
+	        # Status
+	        NOTARIZED=$(/usr/sbin/spctl --assess --type execute -v "$PROCESS" 2>&1)
+	        if [[ "$NOTARIZED" == *"source=Notarized Developer ID"* ]]; then
+	            STATUS="Notarized"
+	        else
+	            STATUS="Not Notarized"
+	        fi
+
+	        # Stapled
+	        # In macOS notarization, a status of "Notarization Ticket=stapled" means that the official cryptographic proof of Apple's security approval has been embedded directly into the application package.
+	        # Because the notarization ticket is attached to the app file, macOS Gatekeeper can verify the notarization instantly, even if the user has no internet connection (Offline Validation).
+	        if [[ "$CODESIGN" == *"Notarization Ticket=stapled"* ]]; then
+	            STAPLED="Yes"
+	        else
+	            STAPLED="No"
+	        fi
+
+	        # Gatekeeper
+	        if [[ "$NOTARIZED" == *"accepted"* ]]; then
+	            GATEKEEPER="Approved"
+	        else
+	            GATEKEEPER="Denied"
+	        fi
+	        
+	        echo "\"$PROCESS_NAME\",$PID,\"$PPID_DISPLAY\",\"$USER_VAL\",\"$FORMATTED_DATE\",$MD5,$SHA1,$SHA256,\"$PROCESS\",\"$SIGNATURE\",\"$BUNDLEID\",\"$COMPANY\",\"$TEAMID\",\"$STATUS\",\"$STAPLED\",\"$GATEKEEPER\""
+	    fi
+	done < "$OUTPUT/TrueTree/TrueTree_Data/General/hash_running_processes_full_paths.txt" >> "$OUTPUT/TrueTree/TrueTree_Data/General/Processes.csv"
+
+	# TXT
+	while IFS=, read -r PID PARENT_PID USER_VAL STARTED PROCESS || [[ -n "$PROCESS" ]]; do
+	    [[ -z "$PROCESS" ]] && continue
+	    if [[ -f "$PROCESS" ]]; then
+			echo "$(/sbin/md5 -q "$PROCESS") $(/usr/bin/shasum -a 1 "$PROCESS" | /usr/bin/cut -d' ' -f1) $PROCESS"
+		fi
+	done < "$OUTPUT/TrueTree/TrueTree_Data/General/hash_running_processes_full_paths.txt" > "$OUTPUT/TrueTree/TrueTree_Data/General/hash_running_processes.txt"
+
+	# Count Processes
+	COUNT=$(cat "$OUTPUT/TrueTree/TrueTree_Data/General/hash_running_processes.txt" | /usr/bin/grep -c ^)
+	echo "[Info]  $COUNT Running Processes found"
+
+	# Cleaning up
+	/bin/rm -f "$OUTPUT/TrueTree/TrueTree_Data/General/hash_running_processes_full_paths.txt"
+fi
+
 # Creating Secure Archive
 if [[ -d "$OUTPUT/TrueTree/TrueTree_Data" ]]; then
 	if [[ -n "$( ls -A "$OUTPUT/TrueTree/TrueTree_Data" )" ]]; then
@@ -3616,31 +3806,64 @@ echo "TrueTree Snapshot Collection: $((ELAPSED_TIME_TRUETREE/60)) min $((ELAPSED
 #############################################################
 #############################################################
 
-Biome() {
+biome() {
 
 # Stats
 START_BIOME=$(/bin/date +%s)
 
 # Biome Data
-echo "[Info]  Collecting User-Specific Biome Data ..."
+echo "[Info]  Collecting Biome Data ..."
 /bin/mkdir -p "$OUTPUT/Biome/Biome_Data/"
 
-# App.MenuItem is a new Biome stream introduced in macOS 26 (Tahoe) that logs the specific menu items a user selects across the operating system, along with timestamps.
-# https://unit42.paloaltonetworks.com/new-macos-artifact-discovered/
-# https://github.com/cclgroupltd/ccl-segb
+# Collecting User-Level Biome Data
+for UserName in $(/usr/bin/dscl . list /Users UniqueID | /usr/bin/awk '$2 > 500 {print $1}')
+do	
+	SOURCE="/Users/$UserName/Library/Biome/streams/"
+	DESTINATION="$OUTPUT/Biome/Biome_Data/Biome_Streams/User-Level/$UserName/"
+	/bin/mkdir -p "$DESTINATION"
+	/usr/bin/sudo /usr/bin/rsync -av "$SOURCE" "$DESTINATION" > /dev/null
+done
+
+# Collecting System-Level Biome Data
+SOURCE="/private/var/db/biome/streams/"
+DESTINATION="$OUTPUT/Biome/Biome_Data/Biome_Streams/System-Level/"
+/bin/mkdir -p "$DESTINATION"
+/usr/bin/sudo /usr/bin/rsync -av "$SOURCE" "$DESTINATION" > /dev/null
 
 # App.MenuItem (Apple Biome Stream)
-/bin/mkdir -p "$OUTPUT/Biome/Biome_Data/App.MenuItem"
-for UserName in $(/usr/bin/dscl . list /Users UniqueID | /usr/bin/awk '$2 > 500 {print $1}')
-do
-	# Collecting App.MenuItem Artifacts (Biome)
-	/bin/mkdir -p "$OUTPUT/Biome/Biome_Data/App.MenuItem/$UserName/"
-	SOURCE="/Users/$UserName/Library/Biome/streams/restricted/App.MenuItem/local/"
-	DESTINATION="$OUTPUT/Biome/Biome_Data/App.MenuItem/$UserName/"
-	if [[ -d "$SOURCE" ]] && [[ -n "$(/bin/ls -A "$SOURCE")" ]]; then
-		/usr/bin/sudo /usr/bin/rsync -av "$SOURCE" "$DESTINATION" > /dev/null # SEGB (Segmented Binary) --> .segb
-	fi
-done
+MajorVersion=$(/usr/bin/sw_vers -productVersion | /usr/bin/cut -d'.' -f1)
+if (( MajorVersion >= 26 )); then
+	/bin/mkdir -p "$OUTPUT/Biome/Biome_Data/App.MenuItem"
+	for UserName in $(/usr/bin/dscl . list /Users UniqueID | /usr/bin/awk '$2 > 500 {print $1}')
+	do
+		# Collecting App.MenuItem Artifacts (Biome)
+		/bin/mkdir -p "$OUTPUT/Biome/Biome_Data/App.MenuItem/$UserName/"
+		SOURCE="/Users/$UserName/Library/Biome/streams/restricted/App.MenuItem/local/"
+		DESTINATION="$OUTPUT/Biome/Biome_Data/App.MenuItem/$UserName/"
+		if [[ -d "$SOURCE" ]] && [[ -n "$(/bin/ls -A "$SOURCE")" ]]; then
+			/usr/bin/sudo /usr/bin/rsync -av "$SOURCE" "$DESTINATION" > /dev/null # SEGB (Segmented Binary) --> .segb
+		fi
+	done
+fi
+
+# Biome Timeline
+# https://github.com/cocopollo/Biome_Timeline
+if command -v python3 &> /dev/null; then
+	echo "[Info]  Creating Biome Timeline(s) ..."
+	/bin/mkdir -p "$OUTPUT/Biome/Biome_Data/Biome_Timeline"
+
+	# User-Level Biome Data
+	for UserName in $(/usr/bin/dscl . list /Users UniqueID | /usr/bin/awk '$2 > 500 {print $1}')
+	do
+		/bin/mkdir -p "$OUTPUT/Biome/Biome_Data/Biome_Timeline/User-Level/$UserName/"
+		python3 "$SCRIPT_DIR/tools/Biome_Timeline/biome.py" all -l -o "$OUTPUT/Biome/Biome_Data/Biome_Timeline/User-Level/$UserName/Biome_Timeline_Live.csv" 2> "$OUTPUT/Biome/Biome_Data/Biome_Timeline/User-Level/$UserName/LogFile_Live.txt"
+		python3 "$SCRIPT_DIR/tools/Biome_Timeline/biome.py" all -d "$OUTPUT/Biome/Biome_Data/Biome_Streams/User-Level/$UserName" -o "$OUTPUT/Biome/Biome_Data/Biome_Timeline/User-Level/$UserName/Biome_Timeline.csv" 2> "$OUTPUT/Biome/Biome_Data/Biome_Timeline/User-Level/$UserName/LogFile.txt"
+	done
+
+	# System-Level Biome Data
+	/bin/mkdir -p "$OUTPUT/Biome/Biome_Data/Biome_Timeline/System-Level"
+	python3 "$SCRIPT_DIR/tools/Biome_Timeline/biome.py" all -d "$OUTPUT/Biome/Biome_Data/Biome_Streams/System-Level" -o "$OUTPUT/Biome/Biome_Data/Biome_Timeline/System-Level/Biome_Timeline.csv" 2> "$OUTPUT/Biome/Biome_Data/Biome_Timeline/System-Level/LogFile.txt"
+fi
 
 # Creating Secure Archive
 if [[ -d "$OUTPUT/Biome/Biome_Data" ]]; then
@@ -3686,17 +3909,128 @@ fi
 # Stats
 END_BIOME=$(/bin/date +%s)
 ELAPSED_TIME_BIOME=$((END_BIOME - START_BIOME))
-echo "Biome Data Collection:        $((ELAPSED_TIME_BIOME/60)) min $((ELAPSED_TIME_BIOME%60)) sec" >> "$OUTPUT"/Stats.txt
+echo "Biome Data Collection: $((ELAPSED_TIME_BIOME/60)) min $((ELAPSED_TIME_BIOME%60)) sec" >> "$OUTPUT"/Stats.txt
 
 }
 
-# TODO
-# - Count BIOME Artifacts???
+#############################################################
+#############################################################
+
+uac() {
+
+# UAC (Unix-like Artifacts Collector)
+# https://github.com/tclahr/uac
+
+# Note: UAC needs to be root, as well as have full disk access (FDA) in order to collect all important data on macOS.
+
+# Check if Terminal application (or iTerm2) has full disk access (FDA)
+# System Settings --> Privacy & Security --> Full Disk Access
+
+# Stats
+START_UAC=$(/bin/date +%s)
+
+# Verify File Integrity
+if [[ -s $(/bin/ls -A "$UAC/uac") ]]; then
+	MD5=$(/sbin/md5 "$UAC/uac" | /usr/bin/sed -e 's/.*= //g' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
+	if [[ "$MD5" = "$MD5_UAC" ]]; then
+
+		# Check if UAC is executable
+		if [[ ! -x "$UAC/uac" ]]; then
+			/bin/chmod -R +x "$UAC/*"
+		fi
+
+		# Check for Quarantine attribute
+		if /usr/bin/xattr "$SCRIPT_DIR/tools/UAC" | /usr/bin/grep -q "com.apple.quarantine"; then
+			/usr/bin/xattr -dr com.apple.quarantine "$SCRIPT_DIR/tools/UAC"
+		fi
+
+		# UAC Version
+		cd "$SCRIPT_DIR/tools/UAC/" || exit
+		Version=$(/usr/bin/sudo ./uac --version | /usr/bin/sed -e 's/UAC (Unix-like Artifacts Collector) //g')
+		cd "$SCRIPT_DIR" || exit
+		echo "[Info]  UAC Version: $Version"
+
+		echo "[Info]  File Integrity (uac): OK"
+	else
+		echo -e "\033[91m[ALERT] File Integrity (uac): FAILURE\033[0m"
+		exit 1
+	fi
+fi
+
+# Make UAC Executable
+/usr/bin/sudo /bin/chmod -R 755 "$UAC"
+
+# Change Group Ownership
+/usr/bin/sudo /usr/sbin/chown -R :staff "$UAC"
+
+# UAC Collection
+/bin/mkdir -p "$OUTPUT/UAC/UAC_Collection"
+
+# UAC Triage Collection
+echo "[Info]  UAC Triage Collection is running [approx. 30-45 min] ..."
+cd "$SCRIPT_DIR/tools/UAC/" || exit
+/usr/bin/sudo ./uac --operating-system macos -p ir_triage --output-format none "$OUTPUT/UAC/UAC_Collection" 2> "$OUTPUT/UAC/UAC_Collection/stderr.txt" | /usr/bin/sudo /usr/bin/tee "$OUTPUT/UAC/UAC_Collection/stdout.txt"
+cd "$SCRIPT_DIR" || exit
+
+# Creating Secure Archive
+if [[ -d "$OUTPUT/UAC/UAC_Collection" ]]; then
+	if [[ -n "$( ls -A "$OUTPUT/UAC/UAC_Collection" )" ]]; then
+		echo "--------------------------------------------------------------------------------"
+		echo "[Info]  Preparing Secure Archive Container ..."
+		cd "$OUTPUT/UAC" || exit
+		"$SEVENZIP" a -mx5 -mhe=on "-p$ARCHIVE_PASSWORD" -t7z "UAC_$SerialNumber.7z" "UAC_Collection/*" > /dev/null 2>&1
+		cd "$SCRIPT_DIR" || exit
+	fi
+fi
+
+# Check if Archive exists
+if /bin/ls -l "$OUTPUT/UAC" | /usr/bin/awk '{ print $9 }' | /usr/bin/grep -q "^UAC_.*.7z$"; then
+
+	# Archive Name
+	ARCHIVE=$(/bin/ls -l "$OUTPUT/UAC" | /usr/bin/awk '{ print $9 }' | /usr/bin/grep "^UAC_.*.7z$")
+	echo "[Info]  Archive Name: $ARCHIVE"
+
+	# Archive Size
+	FILE="$OUTPUT/UAC/$ARCHIVE"
+	BYTES=$(/bin/ls -l "$FILE" | /usr/bin/awk '{ print $5 }')
+	FILESIZE=$(echo "$BYTES" | /usr/bin/awk '{ split( "Bytes KB MB GB TB" , v ); s=1; while( $1>1000 ){ $1/=1000; s++ } printf "%.1f %s", $1, v[s] }')
+	echo "[Info]  Archive Size: $FILESIZE"
+
+	# MD5 Calculation
+	if [[ -s $(/bin/ls -A "$FILE") ]]; then
+		echo "[Info]  Calculating MD5 checksum of UAC Archive ..."
+		MD5=$(/sbin/md5 "$FILE" | /usr/bin/awk '{ print $4 }' | /usr/bin/awk 'BEGIN { getline; print toupper($0) }')
+		echo "[Info]  MD5 Hash: $MD5"
+	fi
+
+	# Create Time
+	BIRTH=$(TZ='' /usr/bin/stat -f "%SB" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+	echo "[Info]  Create Time: $BIRTH UTC"
+
+	# Last Modified Time
+	MODIFY=$(TZ='' /usr/bin/stat -f "%Sm" -t "%Y-%m-%d %H:%M:%S" "$FILE")
+	echo "[Info]  Last Modified Time: $MODIFY UTC"
+else
+	echo -e "\033[91m[Error] No UAC Archive found.\033[0m"
+fi
+
+# Cleaning up
+FOLDER="$OUTPUT/UAC/UAC_Collection"
+if [[ -d "$FOLDER" ]]; then
+	/bin/rm -rf "$FOLDER"
+fi
+
+# Stats
+END_UAC=$(/bin/date +%s)
+ELAPSED_TIME_UAC=$((END_UAC - START_UAC))
+echo "UAC Triage Collection: $((ELAPSED_TIME_UAC/60)) min $((ELAPSED_TIME_UAC%60)) sec" >> "$OUTPUT"/Stats.txt
+
+}
 
 #############################################################
 #############################################################
 
-Footer() {
+footer() {
 
 echo ""
 echo "FINISHED!"
@@ -3714,7 +4048,7 @@ echo "Overall analysis duration: $((ELAPSED_TIME/60)) min $((ELAPSED_TIME%60)) s
 
 # Change permissions of output files
 LoggedInUser=$(/usr/bin/stat -f %Su /dev/console)
-/usr/bin/sudo /usr/sbin/chown -R "$LoggedInUser" "$SCRIPT_DIR/output/"
+/usr/bin/sudo /usr/sbin/chown -R "$LoggedInUser" "$BASE_DIR/$(/bin/hostname -s)"
 
 }
 
@@ -3722,204 +4056,127 @@ LoggedInUser=$(/usr/bin/stat -f %Su /dev/console)
 #############################################################
 
 # Main
+# shellcheck disable=SC2317
+main_execution() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --analyze|--biome|--btm|--collect|--ds_store|--fsevents|--info|--knockknock|--logs|--metadata|--notifications|--processes|--recentitems|--sysdiagnose|--triage|--uac)
+                if [[ -n "$MODE" ]]; then
+                    echo "[Error] Multiple modes specified ($MODE and $1). Choose only one." >&2
+                    exit 1
+                fi
+                MODE="$1"
+                shift
+                ;;
+            --output-path)
+                if [[ -n "$2" && "$2" != -* ]]; then
+                    OUTPUT_PATH="$2"
+                    shift 2
+                else
+                    echo "[Error] --output-path requires a valid path value." >&2
+                    exit 1
+                fi
+                ;;
+            -h|--help|\?)
+                header
+                usage
+                exit 0
+                ;;
+            *)
+                header
+                echo -e "\033[91m[Error] No such option: $1\033[0m" >&2
+                echo ""
+                usage
+                exit 1
+                ;;
+        esac
+    done
 
-case "${1}" in
-	--analyze)
-	{
-	Header
-	Check_Admin
-	Verify_7zz
-	Output
-	Aftermath_Analysis
-	Footer
-	} 2>&1 | /usr/bin/tee screenlog-draft.txt
-	;;
-	--biome)
-	{
-	Header
-	Check_Admin
-	Check_FDA
-	Verify_7zz
-	Output
-	BasicInfo
-	Biome
-	Footer
-	} 2>&1 | /usr/bin/tee screenlog-draft.txt
-	;;
-	--btm)
-	{
-	Header
-	Check_Admin
-	Verify_7zz
-	Output
-	BasicInfo
-	BTM_Dump
-	Footer
-	} 2>&1 | /usr/bin/tee screenlog-draft.txt
-	;;
-	--collect)
-	{
-	Header
-	Check_Admin
-	Check_FDA
-	Verify_7zz
-	Output
-	BasicInfo
-	Aftermath_Collection_DeepScan
-	Footer
-	} 2>&1 | /usr/bin/tee screenlog-draft.txt
-	;;
-	--ds_store)
-	{
-	Header
-	Check_Admin
-	Check_FDA
-	Verify_7zz
-	Output
-	BasicInfo
-	DS_Store
-	Footer
-	} 2>&1 | /usr/bin/tee screenlog-draft.txt
-	;;
-	--fsevents)
-	{
-	Header
-	Check_Admin
-	Verify_7zz
-	Output
-	BasicInfo
-	FSEvents
-	Footer
-	} 2>&1 | /usr/bin/tee screenlog-draft.txt
-	;;
-	--info)
-	{
-	Header
-	Check_Admin
-	Verify_7zz
-	Output
-	BasicInfo
-	SystemInfo
-	Footer
-	} 2>&1 | /usr/bin/tee screenlog-draft.txt
-	;;
-	--knockknock)
-	{
-	Header
-	Check_Admin
-	Check_FDA
-	Verify_7zz
-	Output
-	BasicInfo
-	KnockKnock
-	Footer
-	} 2>&1 | /usr/bin/tee screenlog-draft.txt
-	;;
-	--logs)
-	{
-	Header
-	Check_Admin
-	Verify_7zz
-	Output
-	BasicInfo
-	UnifiedLogs
-	Footer
-	} 2>&1 | /usr/bin/tee screenlog-draft.txt
-	;;
-	--metadata)
-	{
-	Header
-	Check_Admin
-	Check_FDA
-	Verify_7zz
-	Output
-	BasicInfo
-	Spotlight
-	Footer
-	} 2>&1 | /usr/bin/tee screenlog-draft.txt
-	;;
-	--notifications)
-	{
-	Header
-	Check_Admin
-	Verify_7zz
-	Output
-	BasicInfo
-	Notifications
-	Footer
-	} 2>&1 | /usr/bin/tee screenlog-draft.txt
-	;;
-	--processes)
-	{
-	Header
-	Check_Admin
-	Verify_7zz
-	Output
-	BasicInfo
-	TrueTree
-	Footer
-	} 2>&1 | /usr/bin/tee screenlog-draft.txt
-	;;
-	--recentitems)
-	{
-	Header
-	Check_Admin
-	Verify_7zz
-	Output
-	BasicInfo
-	RecentItems
-	Footer
-	} 2>&1 | /usr/bin/tee screenlog-draft.txt
-	;;
-	--sysdiagnose)
-	{
-	Header
-	Check_Admin
-	Verify_7zz
-	Output
-	BasicInfo
-	Sysdiagnose
-	Footer
-	} 2>&1 | /usr/bin/tee screenlog-draft.txt
-	;;
-	--triage)
-	{
-	Header
-	Check_Admin
-	Check_FDA
-	Output
-	BasicInfo
-	SystemInfo
-	Aftermath_Collection_DeepScan
-	DS_Store
-	FSEvents
-	KnockKnock
-	UnifiedLogs
-	RecentItems
-	Sysdiagnose
-	Spotlight
-	Notifications
-	TrueTree
-	Biome
-	Footer
-	} 2>&1 | /usr/bin/tee screenlog-draft.txt
-	;;
-	-h|--help|\?)
-	Header
-	Usage
-	;;
-	"")
-	Header
-	echo "[Error] You must specify something to do (try --help)"
-	echo ""
-	;;
-	*)
-	Header
-	echo "[Error] No such option: $1"
-	echo ""
-	Usage
-	;;
-esac
+    # Check if a mode was actually selected
+    if [[ -z "$MODE" ]]; then
+        header
+        echo -e "\033[91m[Error] You must specify something to do (try --help)\033[0m"
+        echo ""
+        exit 1
+    fi
+
+    # Dynamic Output Directory Setup
+    if [[ -n "$OUTPUT_PATH" ]]; then
+        BASE_DIR="$OUTPUT_PATH"
+    else
+        BASE_DIR="$SCRIPT_DIR/output"
+    fi
+
+    # Output Directory
+    OUTPUT="$BASE_DIR/$(/bin/hostname -s)/$TIMESTAMP-macos-collector"
+
+    if [[ -d "$OUTPUT" ]]; then
+        /bin/rm -rf "$OUTPUT"
+    fi
+    
+    /bin/mkdir -p "$OUTPUT"
+
+    # Time Duration
+	START_TIME=$SECONDS
+
+    # Mode Execution Matrix
+    case "$MODE" in
+        --analyze)
+            header; check_admin; verify_7zz; aftermath_analysis; footer
+            ;;
+        --biome)
+            header; check_admin; check_fda; verify_7zz; basicinfo; biome; footer
+            ;;
+        --btm)
+        	header; check_admin; verify_7zz; basicinfo; btm_dump; footer
+        	;;
+        --collect)
+            header; check_admin; check_fda; verify_7zz; basicinfo; aftermath_collection_deepscan; footer
+            ;;
+        --ds_store)
+            header; check_admin; check_fda; verify_7zz; basicinfo; ds_store; footer
+            ;;
+        --fsevents)
+            header; check_admin; verify_7zz; basicinfo; fsevents; footer
+            ;;
+        --info)
+            header; check_admin; verify_7zz; basicinfo; systeminfo; footer
+            ;;
+        --knockknock)
+            header; check_admin; check_fda; verify_7zz; basicinfo; knockknock; footer
+            ;;
+        --logs)
+            header; check_admin; verify_7zz; basicinfo; unifiedlogs; footer
+            ;;
+        --metadata)
+            header; check_admin; check_fda; verify_7zz; basicinfo; spotlight; footer
+            ;;
+        --notifications)
+            header; check_admin; verify_7zz; basicinfo; notifications; footer
+            ;;
+        --processes)
+            header; check_admin; verify_7zz; basicinfo; truetree; footer
+            ;;
+        --recentitems)
+            header; check_admin; verify_7zz; basicinfo; recentitems; footer
+            ;;
+        --sysdiagnose)
+            header; check_admin; verify_7zz; basicinfo; sysdiagnose; footer
+            ;;
+        --triage)
+            header; check_admin; check_fda; verify_7zz; basicinfo; systeminfo; aftermath_collection_deepscan; ds_store; fsevents; knockknock; unifiedlogs; recentitems; sysdiagnose; spotlight; notifications; truetree; biome; btm_dump; footer
+            ;;
+        --uac)
+        	header; check_admin; check_fda; verify_7zz; basicinfo; uac; footer
+        	;;
+    esac
+}
+
+# Launch
+(
+    main_execution "$@"
+) 2>&1 | /usr/bin/tee screenlog-draft.txt
+
 exit 0
 
 #############################################################

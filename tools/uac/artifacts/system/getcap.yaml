@@ -1,0 +1,15 @@
+version: 3.0
+condition: command_exists "getcap"
+output_directory: /system
+# abuse process capabilities
+# ref: https://www.elastic.co/security-labs/sequel-on-persistence-mechanisms
+artifacts:
+  -
+    description: List all files with Linux capabilities.
+    supported_os: [linux]
+    collector: find
+    path: /
+    exclude_path_pattern: ["/proc", "/sys"]
+    file_type: [f]
+    command: getcap
+    output_file: getcap.txt

@@ -1,0 +1,11 @@
+version: 2.0
+condition: command_exists "gstat"
+output_directory: /live_response/storage
+artifacts:
+  -
+    description: Print statistics about GEOM disks.
+    supported_os: [freebsd]
+    collector: command
+    command: gstat -b
+    output_file: gstat_-b.txt
+  

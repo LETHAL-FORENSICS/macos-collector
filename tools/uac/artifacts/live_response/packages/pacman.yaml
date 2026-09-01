@@ -1,0 +1,23 @@
+version: 2.0
+condition: command_exists "pacman"
+output_directory: /live_response/packages
+artifacts:
+  -
+    description: Display installed packages.
+    supported_os: [linux]
+    collector: command
+    command: pacman -Q -e
+    output_file: pacman_-Q_-e.txt
+  -
+    description: Restrict or filter output to packages that were not found in the sync database(s). Typically these are packages that were downloaded manually and installed with --upgrade.
+    supported_os: [linux]
+    collector: command
+    command: pacman -Q -m
+    output_file: pacman_-Q_-m.txt
+  -
+    description: Restrict or filter output to packages that are found in the sync database(s).
+    supported_os: [linux]
+    collector: command
+    command: pacman -Q -n
+    output_file: pacman_-Q_-n.txt
+  

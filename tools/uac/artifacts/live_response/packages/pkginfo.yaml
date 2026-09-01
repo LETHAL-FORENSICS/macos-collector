@@ -1,0 +1,18 @@
+version: 2.0
+condition: command_exists "pkginfo"
+output_directory: /live_response/packages
+artifacts:
+  -
+    description: Display information for fully installed packages only.
+    supported_os: [solaris]
+    collector: command
+    command: pkginfo -i
+    output_file: pkginfo_-i.txt
+  -
+    description: Display information for fully installed packages only in a long format which includes all available information about the designated package(s).
+    supported_os: [solaris]
+    collector: command
+    command: pkginfo -l
+    output_file: pkginfo_-l.txt
+  
+  

@@ -1,0 +1,11 @@
+version: 2.0
+condition: command_exists "eeprom"
+output_directory: /live_response/system
+artifacts:
+  -
+    description: Display the values of parameters in the EEPROM.
+    supported_os: [solaris]
+    collector: command
+    command: eeprom
+    output_file: eeprom.txt
+  

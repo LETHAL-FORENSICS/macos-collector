@@ -1,0 +1,35 @@
+version: 3.2
+artifacts:
+  -
+    description: Collect systemd configuration files.
+    supported_os: [linux]
+    collector: file
+    path: /etc/systemd /lib/systemd/system /usr/lib/systemd /usr/local/lib/systemd/system /usr/local/lib/systemd/user /usr/local/share/systemd/user /usr/share/systemd/user
+  -
+    description: Collect systemd sessions files.
+    supported_os: [linux]
+    collector: file
+    path: /run/systemd/sessions
+  -
+    description: Collect systemd files.
+    supported_os: [linux]
+    collector: file
+    path: /run/systemd/system
+  -
+    description: Collect systemd scope and transient timer files.
+    supported_os: [linux]
+    collector: file
+    path: /run/systemd/transient
+    name_pattern: ["*.scope", "*.service", "*.timer"]
+  -
+    description: Collect systemd per-user configuration.
+    supported_os: [linux]
+    collector: file
+    path: %user_home%/.config/systemd %user_home%/.local/share/systemd
+  -
+    description: Collect systemd per-user transient timers.
+    supported_os: [linux]
+    collector: file
+    path: /run/user/*/systemd/transient
+    name_pattern: ["*.scope", "*.service", "*.timer"]
+  

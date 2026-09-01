@@ -1,0 +1,11 @@
+version: 2.0
+condition: command_exists "vgs"
+output_directory: /live_response/storage
+artifacts:
+  -
+    description: Display information about volume groups.
+    supported_os: [linux]
+    collector: command
+    command: vgs
+    output_file: vgs.txt
+  

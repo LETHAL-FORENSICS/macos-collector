@@ -1,0 +1,12 @@
+version: 2.0
+output_directory: /hash_executables
+artifacts:
+  -
+    description: Find files that contain the +x flag set.
+    supported_os: [all]
+    collector: hash
+    path: /
+    exclude_file_system: [proc, procfs]
+    file_type: [f]
+    permissions: [-001, -010, -100]
+    output_file: hash_executables

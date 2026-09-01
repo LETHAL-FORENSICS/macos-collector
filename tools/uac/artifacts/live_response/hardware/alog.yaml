@@ -1,0 +1,10 @@
+version: 2.0
+condition: command_exists "alog"
+output_directory: /live_response/hardware
+artifacts:
+  -
+    description: Print boot log.
+    supported_os: [aix]
+    collector: command
+    command: alog -o -t boot
+    output_file: alog_-o_-t_boot.txt

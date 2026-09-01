@@ -1,0 +1,10 @@
+version: 2.0
+condition: command_exists "system_profiler"
+output_directory: /live_response/system
+artifacts:
+  -
+    description: Reports system hardware and software configuration.
+    supported_os: [macos]
+    collector: command
+    command: system_profiler
+    output_file: system_profiler.txt

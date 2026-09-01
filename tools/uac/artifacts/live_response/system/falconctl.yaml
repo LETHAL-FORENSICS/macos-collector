@@ -1,0 +1,29 @@
+version: 3.0
+condition: ls "/opt/CrowdStrike/falconctl" || ls /Applications/Falcon.app/Contents/Resources/falconctl
+output_directory: /live_response/system
+artifacts:
+  -
+    description: Display sensor information.
+    supported_os: [linux]
+    collector: command
+    command: /opt/CrowdStrike/falconctl info
+    output_file: falconctl_info.txt
+  -
+    description: Display sensor information and statistics.
+    supported_os: [linux]
+    collector: command
+    command: /opt/CrowdStrike/falconctl stats
+    output_file: falconctl_stats.txt
+  -
+    description: Display sensor information.
+    supported_os: [macos]
+    collector: command
+    command: /Applications/Falcon.app/Contents/Resources/falconctl info
+    output_file: falconctl_info.txt
+  -
+    description: Display sensor information and statistics.
+    supported_os: [macos]
+    collector: command
+    command: /Applications/Falcon.app/Contents/Resources/falconctl stats
+    output_file: falconctl_stats.txt
+  

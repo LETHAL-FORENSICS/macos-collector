@@ -1,0 +1,26 @@
+version: 4.1
+artifacts:
+  -
+    description: Collect system configuration files.
+    supported_os: [aix, esxi, freebsd, linux, netbsd, netscaler, openbsd, solaris]
+    collector: file
+    path: /etc
+    exclude_name_pattern: ["shadow", "shadow-", "master.passwd", "spwd.db", "gshadow", "gshadow-"]
+    ignore_date_range: true
+  -
+    description: Collect system configuration files.
+    supported_os: [aix, esxi, freebsd, linux, netbsd, netscaler, openbsd, solaris]
+    collector: file
+    path: /usr/local/etc
+    ignore_date_range: true
+  -
+    description: Collect system configuration files.
+    supported_os: [macos]
+    collector: file
+    path: /private/etc
+    exclude_name_pattern: ["shadow", "shadow-"]
+    ignore_date_range: true
+
+# References:
+# https://www.elastic.co/security-labs/primer-on-persistence-mechanisms
+# https://www.elastic.co/security-labs/sequel-on-persistence-mechanisms

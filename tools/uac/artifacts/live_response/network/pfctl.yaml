@@ -1,0 +1,10 @@
+version: 2.0
+condition: command_exists "pfctl"
+output_directory: /live_response/network
+artifacts:
+  -
+    description: Collect all packet filter information.
+    supported_os: [freebsd, netbsd, openbsd]
+    collector: command
+    command: pfctl -s all
+    output_file: pfctl_-s_all.txt

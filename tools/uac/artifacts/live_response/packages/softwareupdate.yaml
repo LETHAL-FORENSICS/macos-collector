@@ -1,0 +1,10 @@
+version: 2.0
+condition: command_exists "softwareupdate"
+output_directory: /live_response/packages
+artifacts:
+  -
+    description: Display installed updates.
+    supported_os: [macos]
+    collector: command
+    command: softwareupdate --history --all
+    output_file: softwareupdate_--history_--all.txt
